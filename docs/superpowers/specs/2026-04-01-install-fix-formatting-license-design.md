@@ -6,9 +6,9 @@
 
 ## Summary
 
-Four changes grouped into one implementation cycle:
+Five changes grouped into one implementation cycle:
 
-1. Fix `log_info` stdout contamination bug (breaks install on all images)
+1. Fix `log_info` and `log_debug` stdout contamination bug (breaks install on all images)
 2. Fix CI false positives (test steps pass despite feature install failures)
 3. Two-layer formatting enforcement (pre-commit auto-formats; CI blocks unformatted PRs)
 4. Change license from MIT to Apache 2.0
@@ -51,18 +51,27 @@ curl rejects this with `bad range in URL position 34` (the `[` bracket). Every i
 
 ### Fix
 
-Change `log_info` to write to stderr, consistent with `log_warn` and `log_error`:
+Change both `log_info` and `log_debug` to write to stderr, consistent with `log_warn` and
+`log_error`:
 
 ```bash
-log_info() { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
+log_info()  { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
+log_debug() {
+    if [[ "${DEBUG:-false}" == "true" ]]; then
+        echo "${FEATURE_LOG_PREFIX} DEBUG: $*" >&2
+    fi
+}
 ```
 
-One character change (`>&2`). No other logging functions need to change — `log_warn` and
-`log_error` already write to stderr.
+`log_debug` has the same stdout defect (line 54-57). While it is not a live bug today
+(no command-substitution call site currently uses a function that calls `log_debug`), the
+same class of issue applies and fixing it is required for defensive correctness.
+
+`log_warn` and `log_error` already write to stderr — no change needed.
 
 ### Affected File
 
-- `src/claude-code/install.sh` line 51
+- `src/claude-code/install.sh` lines 51 and 54-57
 
 ---
 
@@ -86,23 +95,41 @@ Exit code 1
 
 ### Fix
 
+This is a **heuristic workaround** for a devcontainer CLI bug (exits 0 on container build
+failure). The real fix would be a CLI patch. The workaround is tied to the CLI's current
+output format and must be revisited if the CLI version is upgraded.
+
 After each `devcontainer features test` step, grep the captured log for known failure
-strings. If any are found, force `exit 1`:
+strings. If any are found, force `exit 1`. Each job uses a different log path:
+
+**test-scenarios** (log: `/tmp/scenario-test-output.log`):
 
 ```bash
-devcontainer features test ... 2>&1 | tee /tmp/test-output.log
-if grep -qE "Exit code [^0]|failed to install|Failed to launch" /tmp/test-output.log; then
+devcontainer features test --project-folder . \
+  2>&1 | tee /tmp/scenario-test-output.log
+if grep -qE "Exit code [^0]|failed to install|Failed to launch" \
+    /tmp/scenario-test-output.log; then
   echo "ERROR: Test output contains failures."
   exit 1
 fi
 ```
 
-This pattern is applied to all three test jobs: `test-scenarios`, `test-image-matrix`,
-`test-arm64`.
+**test-image-matrix and test-arm64** (log: `/tmp/test-output.log`):
+
+```bash
+devcontainer features test ... \
+  2>&1 | tee /tmp/test-output.log
+if grep -qE "Exit code [^0]|failed to install|Failed to launch" \
+    /tmp/test-output.log; then
+  echo "ERROR: Test output contains failures."
+  exit 1
+fi
+```
 
 ### Affected File
 
-- `.github/workflows/test.yml` — all three test job `run:` blocks
+- `.github/workflows/test.yml` — all three test job `run:` blocks (note: different log
+  paths per job)
 
 ---
 
@@ -120,7 +147,9 @@ with `--no-verify`, the CI lint job catches it and blocks the PR from merging.
 
 ### Pre-commit Changes
 
-**shfmt**: Add `-w` explicitly so the hook writes formatted files in place:
+**shfmt**: The `scop/pre-commit-shfmt` hook already runs in write mode (`-w`) by default.
+The `-w` flag in user args is redundant but harmless (shfmt tolerates duplicate `-w`).
+Keep it for explicitness — it documents intent clearly:
 
 ```yaml
 - repo: https://github.com/scop/pre-commit-shfmt
@@ -162,33 +191,46 @@ These remain unchanged. They are the enforcement layer.
 
 ### Changes
 
-**`LICENSE`**: Replace MIT text with Apache 2.0 text. Keep `Copyright (c) 2026 PKramek`.
+**`LICENSE`**: Replace MIT text with the standard, verbatim Apache License 2.0 text
+(OSI-approved format). Do not embed the copyright line inside the license body — Apache 2.0
+copyright attribution goes in a separate `NOTICE` file.
 
-**`src/claude-code/devcontainer-feature.json`**: Update `licenseURL` from pointing to the
-MIT license to Apache 2.0:
+**`NOTICE`** (new file): Create with the copyright attribution:
 
-```json
-"licenseURL": "https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE"
+```
+claude-devcontainer
+Copyright (c) 2026 PKramek
 ```
 
-(The URL itself does not change — it points to the `LICENSE` file whose content is
-replaced. No URL update needed.)
+The Apache 2.0 license (Section 4(d)) requires redistributors to include the NOTICE file.
+Creating it now ensures compliance.
 
-**`README.md`**: No change needed — README does not mention the license name inline.
+**`README.md`**: The `## License` section currently reads `MIT`. Update to `Apache 2.0`:
+
+```markdown
+## License
+
+Apache 2.0
+```
+
+**`src/claude-code/devcontainer-feature.json`**: The `licenseURL` value already points to
+`https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE` — no URL change needed,
+the file content replacement is sufficient.
 
 ### Affected Files
 
-- `LICENSE`
-- No other files require changes (licenseURL already points to the file, not the license name)
+- `LICENSE` (content replaced)
+- `NOTICE` (new file)
+- `README.md` (license name updated)
 
 ---
 
 ## Implementation Order
 
-1. `log_info` fix in `install.sh` (unblocks all test runs)
-2. License file replacement
-3. Pre-commit config update (shfmt `-w`, no-commit-to-branch `develop`)
-4. CI false positive grep checks in `test.yml`
+1. `log_info` + `log_debug` fix in `install.sh` (unblocks all test runs)
+2. License: replace `LICENSE`, create `NOTICE`, update `README.md`
+3. Pre-commit config update (shfmt `-w` explicit, no-commit-to-branch `develop`)
+4. CI false positive grep checks in `test.yml` (correct log path per job)
 
 Each change is independent. All four can land in a single commit or separate commits per
 logical group.
