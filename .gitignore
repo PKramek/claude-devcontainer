@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Node (from npm install in CI)
+node_modules/
+
+# Pre-commit
+.pre-commit-cache/
