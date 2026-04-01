@@ -252,4 +252,152 @@ ensure_base_dependencies() {
 
 ensure_base_dependencies
 
+# --- Node.js Installation ---
+NODE_MIN_VERSION=18
+
+get_node_major_version() {
+    local version_string
+    version_string=$(node --version 2>/dev/null || echo "")
+    if [[ -z "${version_string}" ]]; then
+        echo "0"
+        return
+    fi
+    echo "${version_string}" | sed 's/^v//' | cut -d. -f1
+}
+
+resolve_node_version() {
+    local requested="$1"
+    if [[ "${requested}" == "lts" ]]; then
+        local lts_version
+        lts_version=$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null \
+            | node -e "
+                const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+                const lts = data.find(r => r.lts);
+                console.log(lts ? lts.version.replace(/^v/,'').split('.')[0] : '22');
+            " 2>/dev/null || echo "22")
+        if [[ -z "${lts_version}" ]]; then lts_version="22"; fi
+        log_info "Resolved LTS to Node.js ${lts_version}"
+        echo "${lts_version}"
+    else
+        echo "${requested}"
+    fi
+}
+
+install_node_binary() {
+    local version="$1"
+    local arch_label
+    case "$(uname -m)" in
+        x86_64)  arch_label="x64" ;;
+        aarch64) arch_label="arm64" ;;
+        *)       log_error "Unsupported arch for Node.js binary: $(uname -m)"; exit 1 ;;
+    esac
+
+    log_info "Installing Node.js ${version} via official binary tarball..."
+
+    TEMP_DIR=$(mktemp -d)
+    local url="https://nodejs.org/dist/latest-v${version}.x/"
+
+    local shasums
+    shasums=$(curl -fsSL "${url}SHASUMS256.txt") || {
+        log_error "Failed to download Node.js SHASUMS256.txt from ${url}"
+        exit 1
+    }
+
+    local tarball_line
+    tarball_line=$(echo "${shasums}" | grep "linux-${arch_label}.tar.xz" | head -1)
+    if [[ -z "${tarball_line}" ]]; then
+        log_error "No linux-${arch_label} tarball found in Node.js ${version} release."
+        exit 1
+    fi
+
+    local expected_sha tarball_name
+    expected_sha=$(echo "${tarball_line}" | awk '{print $1}')
+    tarball_name=$(echo "${tarball_line}" | awk '{print $2}')
+
+    log_debug "Downloading ${tarball_name} (SHA256: ${expected_sha})"
+
+    curl -fsSL "${url}${tarball_name}" -o "${TEMP_DIR}/${tarball_name}" || {
+        log_error "Failed to download Node.js from ${url}${tarball_name}"
+        exit 1
+    }
+
+    local actual_sha
+    actual_sha=$(sha256sum "${TEMP_DIR}/${tarball_name}" | awk '{print $1}')
+    if [[ "${actual_sha}" != "${expected_sha}" ]]; then
+        log_error "SHA256 checksum mismatch for Node.js tarball!"
+        log_error "  Expected: ${expected_sha}"
+        log_error "  Actual:   ${actual_sha}"
+        exit 1
+    fi
+    log_info "SHA256 checksum verified."
+
+    tar -xJf "${TEMP_DIR}/${tarball_name}" -C /usr/local --strip-components=1
+    rm -rf "${TEMP_DIR}"
+    TEMP_DIR=""
+
+    log_info "Node.js $(node --version) installed and verified."
+}
+
+install_node_distro() {
+    if [[ "${NODE_VERSION}" != "lts" ]]; then
+        log_warn "nodeVersion '${NODE_VERSION}' is ignored on ${OS_FAMILY} — distro package version will be used."
+    fi
+    log_info "Installing Node.js via distro packages..."
+    case "${OS_FAMILY}" in
+        alpine)
+            install_packages nodejs npm
+            ;;
+        arch)
+            install_packages nodejs npm
+            ;;
+        *)
+            log_error "No distro package strategy for ${OS_FAMILY}."
+            exit 1
+            ;;
+    esac
+
+    local installed_major
+    installed_major=$(get_node_major_version)
+    if [[ "${installed_major}" -lt "${NODE_MIN_VERSION}" ]]; then
+        log_error "Node.js v${installed_major} from distro packages is below minimum ${NODE_MIN_VERSION}."
+        log_error "Use a newer base image or set nodeVersion to install via NodeSource."
+        exit 1
+    fi
+}
+
+ensure_node() {
+    local current_major
+    current_major=$(get_node_major_version)
+
+    if [[ "${current_major}" -ge "${NODE_MIN_VERSION}" ]]; then
+        log_info "Node.js v$(node --version) already installed and meets minimum requirement (>= ${NODE_MIN_VERSION})."
+        return 0
+    fi
+
+    if [[ "${current_major}" -gt 0 ]] && [[ "${current_major}" -lt "${NODE_MIN_VERSION}" ]]; then
+        log_warn "Node.js v$(node --version) is below minimum ${NODE_MIN_VERSION}. Installing newer version..."
+    fi
+
+    local resolved_version
+    resolved_version=$(resolve_node_version "${NODE_VERSION}")
+    log_debug "Resolved Node.js version: ${resolved_version}"
+
+    case "${OS_FAMILY}" in
+        debian|rhel)
+            install_node_binary "${resolved_version}"
+            ;;
+        alpine|arch)
+            install_node_distro
+            ;;
+        *)
+            log_error "No Node.js installation strategy for OS family: ${OS_FAMILY}"
+            exit 1
+            ;;
+    esac
+
+    log_info "Node.js $(node --version) installed successfully."
+}
+
+ensure_node
+
 log_info "Installation complete."
