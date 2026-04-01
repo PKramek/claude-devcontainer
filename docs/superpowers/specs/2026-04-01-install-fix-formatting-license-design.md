@@ -144,10 +144,10 @@ fi
 
 ### Architecture
 
-| Layer | Tool | Mode | Bypassable? |
-|---|---|---|---|
-| Pre-commit (local) | shfmt, prettier, markdownlint | **Write** (auto-format) | Yes (`--no-verify`) |
-| CI lint job | shfmt, prettier, markdownlint | **Check** (fail on diff) | No (required status check) |
+| Layer              | Tool                          | Mode                     | Bypassable?                |
+| ------------------ | ----------------------------- | ------------------------ | -------------------------- |
+| Pre-commit (local) | shfmt, prettier, markdownlint | **Write** (auto-format)  | Yes (`--no-verify`)        |
+| CI lint job        | shfmt, prettier, markdownlint | **Check** (fail on diff) | No (required status check) |
 
 Developers get auto-formatting on commit (no manual formatting step). If they skip hooks
 with `--no-verify`, the CI lint job catches it and blocks the PR from merging.
