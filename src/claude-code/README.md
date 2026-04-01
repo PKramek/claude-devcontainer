@@ -9,7 +9,7 @@ Alma, and Amazon Linux on amd64 and arm64.
 ```json
 {
     "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {}
+        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {}
     }
 }
 ```
@@ -32,7 +32,7 @@ Pin a specific version:
 ```json
 {
     "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
+        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
             "version": "1.0.0"
         }
     }
@@ -44,7 +44,7 @@ Enable MCP servers:
 ```json
 {
     "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
+        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
             "enableMcpServers": true
         }
     }

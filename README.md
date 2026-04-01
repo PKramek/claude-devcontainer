@@ -1,6 +1,6 @@
 # Claude Code DevContainer Feature
 
-[![Test](https://github.com/pkramek/claude-code-devcontainer/actions/workflows/test.yml/badge.svg)](https://github.com/pkramek/claude-code-devcontainer/actions/workflows/test.yml)
+[![Test](https://github.com/pkramek/claude-devcontainer/actions/workflows/test.yml/badge.svg)](https://github.com/pkramek/claude-devcontainer/actions/workflows/test.yml)
 
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code) into any
 devcontainer. Supports Debian, Ubuntu, Alpine, Arch, Fedora, RHEL, Rocky, Alma,
@@ -13,7 +13,7 @@ Add this feature to your `devcontainer.json`:
 ```json
 {
     "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {}
+        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {}
     }
 }
 ```
@@ -36,7 +36,7 @@ Pin a specific version:
 ```json
 {
     "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
+        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
             "version": "1.0.0"
         }
     }
@@ -48,7 +48,7 @@ Enable MCP servers:
 ```json
 {
     "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
+        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
             "enableMcpServers": true
         }
     }
