@@ -469,4 +469,145 @@ install_claude_code() {
 configure_custom_path
 install_claude_code
 
-log_info "Installation complete."
+# --- Shell Completions ---
+setup_completions() {
+    if [[ "${SHELL_COMPLETIONS}" != "true" ]]; then
+        log_debug "Shell completions disabled."
+        return 0
+    fi
+
+    log_info "Installing shell completions..."
+
+    # Bash completions
+    local bash_comp_dir=""
+    if [[ -d /usr/share/bash-completion/completions ]]; then
+        bash_comp_dir="/usr/share/bash-completion/completions"
+    elif [[ -d /etc/bash_completion.d ]]; then
+        bash_comp_dir="/etc/bash_completion.d"
+    fi
+    if [[ -n "${bash_comp_dir}" ]]; then
+        claude completions bash > "${bash_comp_dir}/claude" 2>/dev/null || {
+            log_warn "Failed to install bash completions."
+        }
+    fi
+
+    # Zsh completions
+    if [[ -d /usr/share/zsh/site-functions ]] || mkdir -p /usr/share/zsh/site-functions 2>/dev/null; then
+        claude completions zsh > /usr/share/zsh/site-functions/_claude 2>/dev/null || {
+            log_warn "Failed to install zsh completions."
+        }
+    fi
+
+    # Fish completions
+    local fish_comp_dir=""
+    for dir in /usr/share/fish/vendor_completions.d /usr/share/fish/completions; do
+        if [[ -d "${dir}" ]]; then
+            fish_comp_dir="${dir}"
+            break
+        fi
+    done
+    if [[ -n "${fish_comp_dir}" ]]; then
+        claude completions fish > "${fish_comp_dir}/claude.fish" 2>/dev/null || {
+            log_warn "Failed to install fish completions."
+        }
+    fi
+
+    log_info "Shell completions installed."
+}
+
+setup_completions
+
+# --- MCP Server Configuration ---
+setup_mcp_servers() {
+    if [[ "${ENABLE_MCP_SERVERS}" != "true" ]]; then
+        log_debug "MCP server configuration disabled."
+        return 0
+    fi
+
+    local claude_dir="${REMOTE_USER_HOME}/.claude"
+    local mcp_config="${claude_dir}/mcp_servers.json"
+
+    if [[ -f "${mcp_config}" ]]; then
+        log_info "MCP config already exists at ${mcp_config}, skipping."
+        return 0
+    fi
+
+    log_info "Creating starter MCP configuration..."
+    mkdir -p "${claude_dir}"
+
+    cat > "${mcp_config}" << 'MCPEOF'
+{
+    "mcpServers": {}
+}
+MCPEOF
+
+    chmod 700 "${claude_dir}"
+    chmod 600 "${mcp_config}"
+    chown "${REMOTE_USER}:$(id -gn "${REMOTE_USER}")" "${claude_dir}"
+    chown "${REMOTE_USER}:$(id -gn "${REMOTE_USER}")" "${mcp_config}"
+    log_info "MCP config created at ${mcp_config} (mode 600)"
+}
+
+setup_mcp_servers
+
+# --- Host Config Mount Documentation ---
+setup_mount_docs() {
+    if [[ "${MOUNT_HOST_CONFIG}" != "true" ]]; then
+        return 0
+    fi
+
+    log_info ""
+    log_info "============================================================"
+    log_info "HOST CONFIG MOUNTING"
+    log_info "============================================================"
+    log_info "To mount your host Claude config, add this to your"
+    log_info "devcontainer.json:"
+    log_info ""
+    log_info '  "mounts": ['
+    log_info "    \"source=\${localEnv:HOME}/.claude,target=${REMOTE_USER_HOME}/.claude,type=bind,consistency=cached,readonly\""
+    log_info '  ]'
+    log_info ""
+    log_info "WARNING: This exposes your API keys inside the container."
+    log_info "See README for security considerations."
+    log_info "============================================================"
+    log_info ""
+}
+
+setup_mount_docs
+
+# --- Cache Cleanup ---
+cleanup_caches() {
+    log_info "Cleaning up package manager caches..."
+
+    case "${OS_FAMILY}" in
+        debian)
+            apt-get clean
+            rm -rf /var/lib/apt/lists/*
+            ;;
+        alpine)
+            rm -rf /var/cache/apk/*
+            ;;
+        arch)
+            pacman -Sc --noconfirm 2>/dev/null || true
+            ;;
+        rhel)
+            if command -v dnf > /dev/null 2>&1; then
+                dnf clean all
+            else
+                yum clean all
+            fi
+            rm -rf /var/cache/dnf /var/cache/yum
+            ;;
+    esac
+
+    npm cache clean --force 2>/dev/null || true
+    log_info "Cache cleanup complete."
+}
+
+cleanup_caches
+
+log_info "Claude Code DevContainer Feature installation complete."
+log_info "  Claude Code: $(claude --version 2>/dev/null || echo 'unknown')"
+log_info "  Node.js: $(node --version 2>/dev/null || echo 'unknown')"
+log_info "  OS: ${OS_FAMILY} (${ARCH})"
+log_info "  User: ${REMOTE_USER}"
