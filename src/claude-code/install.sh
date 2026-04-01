@@ -400,4 +400,72 @@ ensure_node() {
 
 ensure_node
 
+# --- PATH Configuration ---
+configure_custom_path() {
+    if [[ "${INSTALL_PATH}" == "/usr/local" ]]; then
+        return 0
+    fi
+
+    log_info "Configuring custom install path: ${INSTALL_PATH}"
+
+    # Immediate PATH update for this script
+    export PATH="${INSTALL_PATH}/bin:${PATH}"
+
+    # Persistent PATH for login shells (bash, zsh)
+    mkdir -p /etc/profile.d
+    cat > /etc/profile.d/claude-code.sh << PATHEOF
+# Added by Claude Code DevContainer Feature
+export PATH="${INSTALL_PATH}/bin:\${PATH}"
+PATHEOF
+    chmod 644 /etc/profile.d/claude-code.sh
+
+    # Persistent PATH for Alpine ash non-login shells
+    if [[ "${OS_FAMILY}" == "alpine" ]]; then
+        # BusyBox ash reads ENV on startup for non-login shells
+        # Write to /etc/profile (not /etc/environment which is PAM-specific)
+        if ! grep -q 'claude-code' /etc/profile 2>/dev/null; then
+            # shellcheck disable=SC2016  # ${PATH} is intentionally literal — expands at shell startup
+            printf 'export PATH="%s/bin:${PATH}"  # claude-code\n' "${INSTALL_PATH}" >> /etc/profile
+        fi
+    fi
+
+    log_info "PATH configured: ${INSTALL_PATH}/bin"
+}
+
+# --- Claude Code Installation ---
+install_claude_code() {
+    local npm_args=(install -g --fetch-retries=3)
+
+    if [[ "${INSTALL_PATH}" != "/usr/local" ]]; then
+        npm_args+=(--prefix "${INSTALL_PATH}")
+    fi
+
+    if [[ "${VERSION}" == "latest" ]]; then
+        npm_args+=("@anthropic-ai/claude-code")
+    else
+        npm_args+=("@anthropic-ai/claude-code@${VERSION}")
+    fi
+
+    log_info "Installing Claude Code (version: ${VERSION})..."
+    log_debug "npm ${npm_args[*]}"
+
+    timeout 300 npm "${npm_args[@]}" || {
+        log_error "Failed to install Claude Code."
+        log_error "Check network connectivity and npm registry access."
+        exit 1
+    }
+
+    # Verify installation
+    if ! claude --version > /dev/null 2>&1; then
+        log_error "Claude Code installed but 'claude' not found on PATH."
+        log_error "PATH=${PATH}"
+        exit 1
+    fi
+
+    log_info "Claude Code $(claude --version) installed successfully."
+}
+
+configure_custom_path
+install_claude_code
+
 log_info "Installation complete."
