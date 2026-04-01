@@ -14,3 +14,9 @@ node_modules/
 
 # Pre-commit
 .pre-commit-cache/
+
+# Internal repo management docs (not for public repo)
+docs/superpowers/specs/2026-04-01-repo-rename-branch-setup-design.md
+
+# Example branch protection rule files
+protect-*.json
