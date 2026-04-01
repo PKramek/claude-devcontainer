@@ -107,19 +107,26 @@ strings. If any are found, force `exit 1`. Each job uses a different log path:
 ```bash
 devcontainer features test --project-folder . \
   2>&1 | tee /tmp/scenario-test-output.log
-if grep -qE "Exit code [^0]|failed to install|Failed to launch" \
+# Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+# Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+if grep -qE "Exit code [1-9]|failed to install|Failed to launch" \
     /tmp/scenario-test-output.log; then
   echo "ERROR: Test output contains failures."
   exit 1
 fi
 ```
 
+`[1-9]` (not `[^0]`) matches only numeric non-zero exit codes, preventing false matches
+on stray non-numeric characters after "Exit code".
+
 **test-image-matrix and test-arm64** (log: `/tmp/test-output.log`):
 
 ```bash
 devcontainer features test ... \
   2>&1 | tee /tmp/test-output.log
-if grep -qE "Exit code [^0]|failed to install|Failed to launch" \
+# Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+# Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+if grep -qE "Exit code [1-9]|failed to install|Failed to launch" \
     /tmp/test-output.log; then
   echo "ERROR: Test output contains failures."
   exit 1
@@ -163,13 +170,22 @@ Keep it for explicitness — it documents intent clearly:
 
 **markdownlint** (`--fix`): Already writes in pre-commit context. No change.
 
-**no-commit-to-branch**: Add `develop` alongside `main` to prevent direct commits to both
-protected branches:
+**no-commit-to-branch**: Add `develop` alongside `main` to prevent accidental direct
+commits from a developer's local machine:
 
 ```yaml
 - id: no-commit-to-branch
   args: ["--branch", "main", "--branch", "develop"]
 ```
+
+Note: this is a local convenience guard only — bypassed by `--no-verify` and ineffective
+for bots/automated tooling. GitHub branch protection rulesets (Task 6) are the
+authoritative server-side enforcement layer.
+
+**Hook SHA pinning**: The current hooks use version tags (`v6.0.0`, `v3.13.0-1`, etc.).
+Tags are mutable — a compromised upstream could force-push a tag to malicious code. Run
+`pre-commit autoupdate --freeze` to convert all `rev` values to commit SHAs. This is the
+approach taken by security-conscious OSS projects and pre-commit's own documentation.
 
 ### CI Changes
 
@@ -213,24 +229,46 @@ Creating it now ensures compliance.
 Apache 2.0
 ```
 
-**`src/claude-code/devcontainer-feature.json`**: The `licenseURL` value already points to
-`https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE` — no URL change needed,
-the file content replacement is sufficient.
+**`src/claude-code/devcontainer-feature.json`**: Add the `license` SPDX field alongside the
+existing `licenseURL`. The DevContainers spec and GHCR registry use this field for display
+and filtering. Without it, the feature appears as unlicensed in registry listings:
+
+```json
+"license": "Apache-2.0",
+"licenseURL": "https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE"
+```
+
+The `licenseURL` URL itself does not change — the file content replacement is sufficient.
+
+**`src/claude-code/install.sh`**: Add an SPDX license identifier to the file header
+(industry standard for machine-parseable license detection by FOSSA, Snyk, GitHub):
+
+```bash
+# SPDX-License-Identifier: Apache-2.0
+```
+
+Add this as the second line of the file (after the shebang).
 
 ### Affected Files
 
-- `LICENSE` (content replaced)
-- `NOTICE` (new file)
-- `README.md` (license name updated)
+- `LICENSE` (content replaced with verbatim Apache 2.0 text)
+- `NOTICE` (new file with copyright attribution)
+- `README.md` (license section updated from "MIT" to "Apache 2.0"; Contributing section
+  updated to instruct non-devcontainer contributors to run `pre-commit install`)
+- `src/claude-code/devcontainer-feature.json` (`"license": "Apache-2.0"` field added)
+- `src/claude-code/install.sh` (SPDX header added)
 
 ---
 
 ## Implementation Order
 
-1. `log_info` + `log_debug` fix in `install.sh` (unblocks all test runs)
-2. License: replace `LICENSE`, create `NOTICE`, update `README.md`
-3. Pre-commit config update (shfmt `-w` explicit, no-commit-to-branch `develop`)
-4. CI false positive grep checks in `test.yml` (correct log path per job)
+1. `log_info` + `log_debug` fix in `install.sh` + SPDX header (unblocks all test runs)
+2. License: replace `LICENSE`, create `NOTICE`, update `README.md` (license + Contributing
+   section), add `"license"` field to `devcontainer-feature.json`
+3. Pre-commit config: shfmt `-w` explicit, `no-commit-to-branch` `develop`, SHA pinning
+   via `pre-commit autoupdate --freeze`
+4. CI false positive grep checks in `test.yml` (tightened regex, inline comments,
+   correct log path per job)
 
 Each change is independent. All four can land in a single commit or separate commits per
 logical group.
