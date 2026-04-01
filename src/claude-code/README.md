@@ -53,18 +53,24 @@ Enable MCP servers:
 
 ## Authentication
 
-Claude Code requires authentication. Set `ANTHROPIC_API_KEY` in your
-devcontainer:
+Claude Code requires authentication. Three options:
 
-```json
-{
-    "remoteEnv": {
-        "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
-    }
-}
-```
+1. **Browser login (recommended):** Run `claude login` in the container terminal.
+   Works out of the box in VS Code's integrated terminal.
 
-Or mount your host `~/.claude` directory (see `mountHostConfig` option).
+2. **Environment variable:**
+
+   ```json
+   {
+       "remoteEnv": {
+           "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+       }
+   }
+   ```
+
+3. **Mount host config:** Use the `mountHostConfig` option to get the mount
+   snippet, then add it to `mounts` in your `devcontainer.json`. Adjust the
+   `target` path to match your container user's home directory.
 
 ## Notes
 

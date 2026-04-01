@@ -252,6 +252,17 @@ ensure_base_dependencies() {
             ;;
     esac
 
+    # xz decompression is required for Node.js binary tarballs (.tar.xz) on debian/rhel.
+    # xz-utils (Debian) / xz (RHEL) may be absent on minimal base images.
+    case "${OS_FAMILY}" in
+        debian)
+            command -v xz > /dev/null 2>&1 || missing+=("xz-utils")
+            ;;
+        rhel)
+            command -v xz > /dev/null 2>&1 || missing+=("xz")
+            ;;
+    esac
+
     if [[ ${#missing[@]} -gt 0 ]]; then
         log_info "Installing missing dependencies: ${missing[*]}"
         install_packages "${missing[@]}"

@@ -57,9 +57,13 @@ Enable MCP servers:
 
 ## Authentication
 
-Claude Code requires authentication. Options:
+Claude Code requires authentication. Three options:
 
-1. **Environment variable:** Set `ANTHROPIC_API_KEY` in your devcontainer:
+1. **Browser login (recommended):** Run `claude login` in the container terminal.
+   Claude Code opens a browser window for OAuth authentication. Works out of the
+   box in VS Code's integrated terminal with no configuration needed.
+
+2. **Environment variable:** Set `ANTHROPIC_API_KEY` in your devcontainer:
 
    ```json
    {
@@ -69,18 +73,19 @@ Claude Code requires authentication. Options:
    }
    ```
 
-2. **Mount host config:** Mount your local `~/.claude` directory:
+3. **Mount host config:** Mount your local `~/.claude` directory:
 
    ```json
    {
        "mounts": [
-           "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached,readonly"
+           "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind,consistency=cached,readonly"
        ]
    }
    ```
 
+   > **Note:** Replace the `target` path with your container user's home directory
+   > (e.g., `/home/vscode`, `/root`, or `/home/node` depending on your base image).
    > **Security warning:** This exposes your API keys inside the container.
-   > If the container is compromised, credentials are at risk.
 
 ## Tested Images
 
