@@ -16,21 +16,22 @@
 
 ## File Map
 
-| File | Change |
-|---|---|
-| `src/claude-code/install.sh` | `log_info` → stderr; `log_debug` → stderr; SPDX headers added |
-| `LICENSE` | Replaced with verbatim Apache 2.0 text |
-| `NOTICE` | New file — copyright attribution |
-| `README.md` | License section: MIT → Apache 2.0; Contributing: add `pre-commit install` step |
-| `src/claude-code/devcontainer-feature.json` | Add `"license": "Apache-2.0"` field |
-| `.pre-commit-config.yaml` | shfmt `-w` explicit; `no-commit-to-branch` adds `develop`; all `rev:` values replaced with commit SHAs |
-| `.github/workflows/test.yml` | All three test job `run:` blocks get grep-based failure detection |
+| File                                        | Change                                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/claude-code/install.sh`                | `log_info` → stderr; `log_debug` → stderr; SPDX headers added                                          |
+| `LICENSE`                                   | Replaced with verbatim Apache 2.0 text                                                                 |
+| `NOTICE`                                    | New file — copyright attribution                                                                       |
+| `README.md`                                 | License section: MIT → Apache 2.0; Contributing: add `pre-commit install` step                         |
+| `src/claude-code/devcontainer-feature.json` | Add `"license": "Apache-2.0"` field                                                                    |
+| `.pre-commit-config.yaml`                   | shfmt `-w` explicit; `no-commit-to-branch` adds `develop`; all `rev:` values replaced with commit SHAs |
+| `.github/workflows/test.yml`                | All three test job `run:` blocks get grep-based failure detection                                      |
 
 ---
 
 ## Task 1: Fix install.sh Logging and Add SPDX Headers
 
 **Files:**
+
 - Modify: `src/claude-code/install.sh` lines 1-2 (SPDX headers), 51 (`log_info`), 54-57 (`log_debug`)
 
 **Context:** `log_info()` currently writes to stdout. When `resolve_node_version` is called
@@ -41,6 +42,7 @@ Node.js download URL that curl rejects with "bad range in URL". Every image fail
 - [ ] **Step 1: Add SPDX headers after the shebang**
 
 The current file starts:
+
 ```bash
 #!/usr/bin/env bash
 #
@@ -49,6 +51,7 @@ The current file starts:
 
 Edit `src/claude-code/install.sh` — INSERT two new lines after line 1 (do NOT replace the
 existing comment block). The result must be:
+
 ```bash
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
@@ -62,11 +65,13 @@ This adds 2 net new lines. Every line below the shebang shifts down by 2.
 - [ ] **Step 2: Fix log_info to write to stderr**
 
 Current line 51 (will be line 53 after step 1):
+
 ```bash
 log_info() { echo "${FEATURE_LOG_PREFIX} $*"; }
 ```
 
 Change to:
+
 ```bash
 log_info()  { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
 ```
@@ -74,6 +79,7 @@ log_info()  { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
 - [ ] **Step 3: Fix log_debug to write to stderr**
 
 Current lines 54-57 (will be lines 56-59 after steps 1-2):
+
 ```bash
 log_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then
@@ -83,6 +89,7 @@ log_debug() {
 ```
 
 Change to:
+
 ```bash
 log_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then
@@ -94,11 +101,13 @@ log_debug() {
 - [ ] **Step 4: Verify log_warn and log_error already write to stderr**
 
 Run:
+
 ```bash
 grep -n "log_info\|log_warn\|log_error\|log_debug" src/claude-code/install.sh | head -8
 ```
 
 Expected output (line numbers will be offset by 2 from step 1):
+
 ```
 53:log_info()  { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
 54:log_warn()  { echo "${FEATURE_LOG_PREFIX} WARNING: $*" >&2; }
@@ -111,6 +120,7 @@ All four functions must end with `>&2`. If `log_warn` or `log_error` are missing
 - [ ] **Step 5: Verify no stdout-writing log functions remain**
 
 Run:
+
 ```bash
 grep -n 'echo.*FEATURE_LOG_PREFIX' src/claude-code/install.sh | grep -v '>&2'
 ```
@@ -120,11 +130,13 @@ Expected: no output. Any line without `>&2` is a bug.
 - [ ] **Step 6: Verify SPDX headers are correct**
 
 Run:
+
 ```bash
 head -5 src/claude-code/install.sh
 ```
 
 Expected:
+
 ```
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
@@ -137,6 +149,7 @@ Expected:
 
 Run (requires `shellcheck` installed — install via `brew install shellcheck` on macOS or
 `apt install shellcheck` on Debian/Ubuntu if not present):
+
 ```bash
 shellcheck --severity=warning src/claude-code/install.sh
 ```
@@ -149,6 +162,7 @@ This step prevents Task 3's `pre-commit run --all-files` from reformatting this 
 contaminating the Task 3 commit with changes from Task 1.
 
 Run:
+
 ```bash
 pre-commit run shfmt --files src/claude-code/install.sh
 pre-commit run shellcheck --files src/claude-code/install.sh
@@ -170,6 +184,7 @@ git commit --author="PKramek <peterkramek@gmail.com>" \
 ## Task 2: Update License to Apache 2.0
 
 **Files:**
+
 - Modify: `LICENSE`
 - Create: `NOTICE`
 - Modify: `README.md`
@@ -192,18 +207,23 @@ curl -o LICENSE https://www.apache.org/licenses/LICENSE-2.0.txt
 ```
 
 Verify the APPENDIX section is present (it follows "END OF TERMS AND CONDITIONS"):
+
 ```bash
 grep -c "APPENDIX" LICENSE
 ```
+
 Expected: `1`
 
 Verify no copyright line was added inside:
+
 ```bash
 head -5 LICENSE
 ```
+
 Expected: the file starts with whitespace + "Apache License" header, no copyright line.
 
 The full canonical text starts as follows and includes the APPENDIX section at the end:
+
 ```
                                  Apache License
                            Version 2.0, January 2004
@@ -377,12 +397,13 @@ The full canonical text starts as follows and includes the APPENDIX section at t
    APPENDIX: How to apply the Apache License to your work. [...]
 ```
 
-*(The code block above is a truncated reference only. `curl` in Step 1 fetches the complete
-text including the full APPENDIX section.)*
+_(The code block above is a truncated reference only. `curl` in Step 1 fetches the complete
+text including the full APPENDIX section.)_
 
 - [ ] **Step 2: Verify LICENSE contains no MIT text**
 
 Run:
+
 ```bash
 grep -i "mit\|permission is hereby granted\|software and associated" LICENSE
 ```
@@ -392,6 +413,7 @@ Expected: no output.
 - [ ] **Step 3: Create NOTICE file**
 
 Create `NOTICE` with this exact content:
+
 ```
 claude-devcontainer
 Copyright (c) 2026 PKramek
@@ -400,6 +422,7 @@ Copyright (c) 2026 PKramek
 - [ ] **Step 4: Update README.md — license section and contributing section**
 
 In `README.md`, the `## License` section currently reads:
+
 ```markdown
 ## License
 
@@ -407,6 +430,7 @@ MIT
 ```
 
 Change to:
+
 ```markdown
 ## License
 
@@ -414,6 +438,7 @@ Apache 2.0
 ```
 
 In `README.md`, the `## Contributing` section currently reads:
+
 ```markdown
 ## Contributing
 
@@ -422,12 +447,14 @@ In `README.md`, the `## Contributing` section currently reads:
 ```
 
 The full Contributing section currently ends with:
+
 ```markdown
 4. Run `pre-commit run --all-files` before committing
 5. Open a pull request
 ```
 
 Change step 2 and add a new step 3 (renumbering the rest):
+
 ```markdown
 ## Contributing
 
@@ -442,12 +469,14 @@ Change step 2 and add a new step 3 (renumbering the rest):
 - [ ] **Step 5: Add `license` field to devcontainer-feature.json**
 
 In `src/claude-code/devcontainer-feature.json`, the current lines 14-15 are:
+
 ```json
   "documentationURL": "https://github.com/pkramek/claude-devcontainer#readme",
   "licenseURL": "https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE",
 ```
 
 Change to:
+
 ```json
   "documentationURL": "https://github.com/pkramek/claude-devcontainer#readme",
   "license": "Apache-2.0",
@@ -457,6 +486,7 @@ Change to:
 - [ ] **Step 6: Validate JSON is still valid**
 
 Run:
+
 ```bash
 python3 -m json.tool src/claude-code/devcontainer-feature.json > /dev/null && echo "OK"
 ```
@@ -466,6 +496,7 @@ Expected: `OK`
 - [ ] **Step 7: Verify no MIT references remain in tracked source files**
 
 Run:
+
 ```bash
 grep -ri '\bMIT\b' --include='*.md' --include='*.json' --include='*.yml' --include='*.yaml' --include='*.sh' .
 ```
@@ -480,6 +511,7 @@ This prevents Task 3's `pre-commit run --all-files` from reformatting these file
 contaminating the Task 3 commit.
 
 Run:
+
 ```bash
 pre-commit run prettier --files README.md
 pre-commit run markdownlint --files README.md
@@ -501,6 +533,7 @@ git commit --author="PKramek <peterkramek@gmail.com>" \
 ## Task 3: Pin Pre-commit Hooks to Commit SHAs
 
 **Files:**
+
 - Modify: `.pre-commit-config.yaml`
 
 **Context:** All five hook repos use mutable version tags. A tag can be force-pushed to
@@ -556,6 +589,7 @@ Without `-w`, the hook only reports errors but does not fix them. The CI lint jo
 to run `shfmt -d` in check-only mode as the enforcement layer.
 
 First, save a backup of the current config to verify no hooks are accidentally dropped:
+
 ```bash
 cp .pre-commit-config.yaml .pre-commit-config.yaml.bak
 ```
@@ -607,11 +641,13 @@ repos:
 - [ ] **Step 3: Verify all rev values are 40-character SHAs**
 
 Run:
+
 ```bash
 grep '^\s*rev:' .pre-commit-config.yaml
 ```
 
 Expected: every line shows a 40-character hex string, not a version tag. Example:
+
 ```
     rev: cef0300de252776ee95f6c2c833b3c4dc39974e3 # v6.0.0
 ```
@@ -628,12 +664,14 @@ diff .pre-commit-config.yaml.bak .pre-commit-config.yaml
 ```
 
 Expected diff should show:
+
 - 5 `rev:` changes (tags → SHAs)
 - 1 `args` change in the `shfmt` hook (adding `-w`)
 - 1 `args` change in `no-commit-to-branch` (adding `"--branch", "develop"`)
 
 Any other changes (removed hooks, changed hook IDs, altered args) are unintended. Fix them
 before continuing. Clean up the backup after verification:
+
 ```bash
 rm .pre-commit-config.yaml.bak
 ```
@@ -641,6 +679,7 @@ rm .pre-commit-config.yaml.bak
 - [ ] **Step 4: Run pre-commit on all files to verify no formatting regressions**
 
 Run:
+
 ```bash
 pre-commit run --all-files
 ```
@@ -652,14 +691,16 @@ stop — this indicates a version change was introduced. Re-check Step 1 SHA res
 - [ ] **Step 5: Verify no-commit-to-branch now protects develop**
 
 Run:
+
 ```bash
 grep -A2 'no-commit-to-branch' .pre-commit-config.yaml
 ```
 
 Expected:
+
 ```yaml
-      - id: no-commit-to-branch
-        args: ["--branch", "main", "--branch", "develop"]
+- id: no-commit-to-branch
+  args: ["--branch", "main", "--branch", "develop"]
 ```
 
 - [ ] **Step 6: Commit**
@@ -675,6 +716,7 @@ git commit --author="PKramek <peterkramek@gmail.com>" \
 ## Task 4: Fix CI False Positives in test.yml
 
 **Files:**
+
 - Modify: `.github/workflows/test.yml` — three `run:` blocks
 
 **Context:** `devcontainer features test` (CLI v0.85.0) exits 0 even when the feature
@@ -684,6 +726,7 @@ exits 1 if any are found. This is a heuristic workaround — comment it clearly 
 maintainers know to revisit it when upgrading the CLI.
 
 Note: Each of the three jobs uses a different log file path:
+
 - `test-scenarios` → `/tmp/scenario-test-output.log`
 - `test-image-matrix` → `/tmp/test-output.log`
 - `test-arm64` → `/tmp/test-output.log`
@@ -691,87 +734,94 @@ Note: Each of the three jobs uses a different log file path:
 - [ ] **Step 1: Fix the test-scenarios job run block**
 
 In `.github/workflows/test.yml`, find the `test-scenarios` job run step (currently line 88):
+
 ```yaml
-      - name: Run all scenarios
-        run: devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
+- name: Run all scenarios
+  run: devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
 ```
 
 Change to:
+
 ```yaml
-      - name: Run all scenarios
-        run: |
-          devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
-          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
-          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
-          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/scenario-test-output.log; then
-            echo "ERROR: Test output contains failures."
-            exit 1
-          fi
+- name: Run all scenarios
+  run: |
+    devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
+    # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+    # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+    if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/scenario-test-output.log; then
+      echo "ERROR: Test output contains failures."
+      exit 1
+    fi
 ```
 
 - [ ] **Step 2: Fix the test-image-matrix job run block**
 
 Find the `test-image-matrix` job run step (currently lines 150-155):
+
 ```yaml
-      - name: Test on ${{ matrix.image }}
-        run: |
-          devcontainer features test \
-            --features claude-code \
-            --skip-scenarios \
-            --base-image "${{ matrix.image }}" \
-            --project-folder . 2>&1 | tee /tmp/test-output.log
+- name: Test on ${{ matrix.image }}
+  run: |
+    devcontainer features test \
+      --features claude-code \
+      --skip-scenarios \
+      --base-image "${{ matrix.image }}" \
+      --project-folder . 2>&1 | tee /tmp/test-output.log
 ```
 
 Change to:
+
 ```yaml
-      - name: Test on ${{ matrix.image }}
-        run: |
-          devcontainer features test \
-            --features claude-code \
-            --skip-scenarios \
-            --base-image "${{ matrix.image }}" \
-            --project-folder . 2>&1 | tee /tmp/test-output.log
-          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
-          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
-          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then
-            echo "ERROR: Test output contains failures."
-            exit 1
-          fi
+- name: Test on ${{ matrix.image }}
+  run: |
+    devcontainer features test \
+      --features claude-code \
+      --skip-scenarios \
+      --base-image "${{ matrix.image }}" \
+      --project-folder . 2>&1 | tee /tmp/test-output.log
+    # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+    # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+    if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then
+      echo "ERROR: Test output contains failures."
+      exit 1
+    fi
 ```
 
 - [ ] **Step 3: Fix the test-arm64 job run block**
 
 Find the `test-arm64` job run step (currently lines 191-196):
+
 ```yaml
-      - name: Test on ${{ matrix.image }} (arm64)
-        run: |
-          devcontainer features test \
-            --features claude-code \
-            --skip-scenarios \
-            --base-image "${{ matrix.image }}" \
-            --project-folder . 2>&1 | tee /tmp/test-output.log
+- name: Test on ${{ matrix.image }} (arm64)
+  run: |
+    devcontainer features test \
+      --features claude-code \
+      --skip-scenarios \
+      --base-image "${{ matrix.image }}" \
+      --project-folder . 2>&1 | tee /tmp/test-output.log
 ```
 
 Change to:
+
 ```yaml
-      - name: Test on ${{ matrix.image }} (arm64)
-        run: |
-          devcontainer features test \
-            --features claude-code \
-            --skip-scenarios \
-            --base-image "${{ matrix.image }}" \
-            --project-folder . 2>&1 | tee /tmp/test-output.log
-          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
-          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
-          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then
-            echo "ERROR: Test output contains failures."
-            exit 1
-          fi
+- name: Test on ${{ matrix.image }} (arm64)
+  run: |
+    devcontainer features test \
+      --features claude-code \
+      --skip-scenarios \
+      --base-image "${{ matrix.image }}" \
+      --project-folder . 2>&1 | tee /tmp/test-output.log
+    # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+    # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+    if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then
+      echo "ERROR: Test output contains failures."
+      exit 1
+    fi
 ```
 
 - [ ] **Step 4: Validate YAML is still valid**
 
 Run:
+
 ```bash
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/test.yml'))" && echo "OK"
 ```
@@ -781,11 +831,13 @@ Expected: `OK`
 - [ ] **Step 5: Verify all three jobs have the grep check and correct log paths**
 
 Run:
+
 ```bash
 grep -n "grep -qE\|scenario-test-output\|test-output" .github/workflows/test.yml
 ```
 
 Expected output (line numbers will vary):
+
 ```
 88:          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/scenario-test-output.log; then
 151:          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then

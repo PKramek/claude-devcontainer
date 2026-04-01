@@ -16,18 +16,19 @@
 
 ## File Map
 
-| File | Change |
-|---|---|
-| `README.md` | 10 occurrences: badge image URL + badge link URL + 3× GHCR feature ref (5 total) |
-| `src/claude-code/README.md` | 3× GHCR feature ref |
-| `src/claude-code/devcontainer-feature.json` | `documentationURL` + `licenseURL` (2 total) |
-| `.github/workflows/test.yml` | Add `develop` to `push.branches` trigger |
+| File                                        | Change                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `README.md`                                 | 10 occurrences: badge image URL + badge link URL + 3× GHCR feature ref (5 total) |
+| `src/claude-code/README.md`                 | 3× GHCR feature ref                                                              |
+| `src/claude-code/devcontainer-feature.json` | `documentationURL` + `licenseURL` (2 total)                                      |
+| `.github/workflows/test.yml`                | Add `develop` to `push.branches` trigger                                         |
 
 ---
 
 ## Task 1: Update Workflow Push Trigger
 
 **Files:**
+
 - Modify: `.github/workflows/test.yml`
 
 The workflow currently only triggers on push to `main`. `develop` is the integration branch — CI must run on it too.
@@ -57,6 +58,7 @@ on:
 ```bash
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/test.yml'))" && echo "OK"
 ```
+
 Expected: `OK`
 
 - [ ] **Step 3: Commit**
@@ -71,6 +73,7 @@ git commit --author="PKramek <peterkramek@gmail.com>" -m "ci: trigger CI on deve
 ## Task 2: Apply Rename Commit
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `src/claude-code/README.md`
 - Modify: `src/claude-code/devcontainer-feature.json`
@@ -82,9 +85,11 @@ sed -i '' 's|claude-code-devcontainer|claude-devcontainer|g' README.md
 ```
 
 Verify:
+
 ```bash
 grep -c "claude-code-devcontainer" README.md
 ```
+
 Expected: `0`
 
 - [ ] **Step 2: Replace all occurrences in src/claude-code/README.md**
@@ -94,9 +99,11 @@ sed -i '' 's|claude-code-devcontainer|claude-devcontainer|g' src/claude-code/REA
 ```
 
 Verify:
+
 ```bash
 grep -c "claude-code-devcontainer" src/claude-code/README.md
 ```
+
 Expected: `0`
 
 - [ ] **Step 3: Replace all occurrences in devcontainer-feature.json**
@@ -106,9 +113,11 @@ sed -i '' 's|claude-code-devcontainer|claude-devcontainer|g' src/claude-code/dev
 ```
 
 Verify:
+
 ```bash
 grep -c "claude-code-devcontainer" src/claude-code/devcontainer-feature.json
 ```
+
 Expected: `0`
 
 - [ ] **Step 4: Confirm zero remaining occurrences across the whole repo**
@@ -116,6 +125,7 @@ Expected: `0`
 ```bash
 grep -r "claude-code-devcontainer" src/ README.md .github/ --include="*.json" --include="*.md" --include="*.yml"
 ```
+
 Expected: no output
 
 - [ ] **Step 5: Validate JSON is still valid**
@@ -123,6 +133,7 @@ Expected: no output
 ```bash
 python3 -m json.tool src/claude-code/devcontainer-feature.json > /dev/null && echo "OK"
 ```
+
 Expected: `OK`
 
 - [ ] **Step 6: Commit**
@@ -145,9 +156,11 @@ git branch -m main feat/initial-implementation
 ```
 
 Verify:
+
 ```bash
 git branch
 ```
+
 Expected: `* feat/initial-implementation`
 
 - [ ] **Step 2: Create orphan `main` with a single empty init commit**
@@ -161,9 +174,11 @@ git commit --allow-empty --author="PKramek <peterkramek@gmail.com>" -m "chore: i
 ```
 
 Verify:
+
 ```bash
 git log --oneline
 ```
+
 Expected: exactly 1 commit — `chore: initialize repository`
 
 - [ ] **Step 3: Create `develop` branched from `main`**
@@ -173,9 +188,11 @@ git checkout -b develop
 ```
 
 Verify:
+
 ```bash
 git log --oneline
 ```
+
 Expected: same single `chore: initialize repository` commit
 
 - [ ] **Step 4: Return to feature branch**
@@ -185,9 +202,11 @@ git checkout feat/initial-implementation
 ```
 
 Verify:
+
 ```bash
 git log --oneline | wc -l
 ```
+
 Expected: `22` (20 original + 1 workflow commit + 1 rename commit)
 
 ---
@@ -201,10 +220,13 @@ git remote add origin git@github.com:PKramek/claude-devcontainer.git
 ```
 
 Verify:
+
 ```bash
 git remote -v
 ```
+
 Expected:
+
 ```
 origin  git@github.com:PKramek/claude-devcontainer.git (fetch)
 origin  git@github.com:PKramek/claude-devcontainer.git (push)
@@ -215,6 +237,7 @@ origin  git@github.com:PKramek/claude-devcontainer.git (push)
 ```bash
 git push -u origin main
 ```
+
 Expected: `Branch 'main' set up to track remote branch 'main' from 'origin'.`
 
 - [ ] **Step 3: Push `develop` with tracking**
@@ -222,6 +245,7 @@ Expected: `Branch 'main' set up to track remote branch 'main' from 'origin'.`
 ```bash
 git push -u origin develop
 ```
+
 Expected: `Branch 'develop' set up to track remote branch 'develop' from 'origin'.`
 
 - [ ] **Step 4: Push `feat/initial-implementation` with tracking**
@@ -229,6 +253,7 @@ Expected: `Branch 'develop' set up to track remote branch 'develop' from 'origin
 ```bash
 git push -u origin feat/initial-implementation
 ```
+
 Expected: `Branch 'feat/initial-implementation' set up to track remote branch 'feat/initial-implementation' from 'origin'.`
 
 - [ ] **Step 5: Set `develop` as the default branch**
@@ -239,6 +264,7 @@ gh api repos/PKramek/claude-devcontainer \
   --field default_branch=develop \
   --jq '.default_branch'
 ```
+
 Expected: `develop`
 
 ---
@@ -282,7 +308,9 @@ Expected: PR URL printed, e.g. `https://github.com/PKramek/claude-devcontainer/p
 gh pr view 1 --repo PKramek/claude-devcontainer --json baseRefName,headRefName,title \
   --jq '{base: .baseRefName, head: .headRefName, title: .title}'
 ```
+
 Expected:
+
 ```json
 {
   "base": "develop",
@@ -411,7 +439,9 @@ Verify the response contains `"name": "protect-main"` and `"enforcement": "activ
 ```bash
 gh api repos/PKramek/claude-devcontainer/rulesets --jq '.[].name'
 ```
+
 Expected:
+
 ```
 protect-develop
 protect-main
@@ -430,7 +460,9 @@ rm "protect-develop (2).json" "protect-master (2).json"
 ```
 
 Verify:
+
 ```bash
 ls protect-*.json 2>/dev/null || echo "clean"
 ```
+
 Expected: `clean`
