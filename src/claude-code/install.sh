@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 PKramek
 #
 # Claude Code DevContainer Feature — install.sh
 # Installs Claude Code CLI into any devcontainer environment.
@@ -48,12 +50,12 @@ cleanup() {
 }
 
 # --- Logging ---
-log_info() { echo "${FEATURE_LOG_PREFIX} $*"; }
-log_warn() { echo "${FEATURE_LOG_PREFIX} WARNING: $*" >&2; }
+log_info()  { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
+log_warn()  { echo "${FEATURE_LOG_PREFIX} WARNING: $*" >&2; }
 log_error() { echo "${FEATURE_LOG_PREFIX} ERROR: $*" >&2; }
 log_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then
-        echo "${FEATURE_LOG_PREFIX} DEBUG: $*"
+        echo "${FEATURE_LOG_PREFIX} DEBUG: $*" >&2
     fi
 }
 
