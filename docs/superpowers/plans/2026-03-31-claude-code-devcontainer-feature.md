@@ -14,36 +14,37 @@
 
 ## File Map
 
-| File | Responsibility |
-|---|---|
-| `src/claude-code/devcontainer-feature.json` | Feature manifest: metadata, options, env vars |
-| `src/claude-code/install.sh` | Installation script: OS detection, Node.js install, Claude Code install, completions, MCP, cleanup |
-| `test/claude-code/test.sh` | Shared test helper functions (assertions) |
-| `test/claude-code/scenarios.json` | Test scenario definitions (image + feature options) |
-| `test/claude-code/default_options.sh` | Test: default options assertions |
-| `test/claude-code/completions_disabled.sh` | Test: completions absent when disabled |
-| `test/claude-code/mcp_enabled.sh` | Test: MCP config exists and is valid |
-| `test/claude-code/custom_version.sh` | Test: pinned version matches exactly |
-| `test/claude-code/node_preinstalled.sh` | Test: existing Node.js untouched |
-| `test/claude-code/custom_install_path.sh` | Test: binary at custom path, PATH updated |
-| `test/claude-code/mount_host_config.sh` | Test: mount snippet in output, no actual mount |
-| `test/claude-code/alpine_specific.sh` | Test: bash installed, Alpine-specific paths |
-| `test/claude-code/idempotency.sh` | Test: double-install produces same state |
-| `test/claude-code/multi_feature_combo.sh` | Test: coexists with separate Node feature |
-| `.github/workflows/test.yml` | CI: lint + exhaustive test matrix |
-| `.github/workflows/release.yml` | CD: publish to ghcr.io on tag push |
-| `.pre-commit-config.yaml` | Pre-commit hook definitions |
-| `.shellcheckrc` | ShellCheck config (bash, warning severity) |
-| `.editorconfig` | Formatting config (4-space indent for .sh) |
-| `.devcontainer/devcontainer.json` | Contributor dev environment |
-| `LICENSE` | MIT license |
-| `README.md` | Usage docs, examples, CI badge |
+| File                                        | Responsibility                                                                                     |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `src/claude-code/devcontainer-feature.json` | Feature manifest: metadata, options, env vars                                                      |
+| `src/claude-code/install.sh`                | Installation script: OS detection, Node.js install, Claude Code install, completions, MCP, cleanup |
+| `test/claude-code/test.sh`                  | Shared test helper functions (assertions)                                                          |
+| `test/claude-code/scenarios.json`           | Test scenario definitions (image + feature options)                                                |
+| `test/claude-code/default_options.sh`       | Test: default options assertions                                                                   |
+| `test/claude-code/completions_disabled.sh`  | Test: completions absent when disabled                                                             |
+| `test/claude-code/mcp_enabled.sh`           | Test: MCP config exists and is valid                                                               |
+| `test/claude-code/custom_version.sh`        | Test: pinned version matches exactly                                                               |
+| `test/claude-code/node_preinstalled.sh`     | Test: existing Node.js untouched                                                                   |
+| `test/claude-code/custom_install_path.sh`   | Test: binary at custom path, PATH updated                                                          |
+| `test/claude-code/mount_host_config.sh`     | Test: mount snippet in output, no actual mount                                                     |
+| `test/claude-code/alpine_specific.sh`       | Test: bash installed, Alpine-specific paths                                                        |
+| `test/claude-code/idempotency.sh`           | Test: double-install produces same state                                                           |
+| `test/claude-code/multi_feature_combo.sh`   | Test: coexists with separate Node feature                                                          |
+| `.github/workflows/test.yml`                | CI: lint + exhaustive test matrix                                                                  |
+| `.github/workflows/release.yml`             | CD: publish to ghcr.io on tag push                                                                 |
+| `.pre-commit-config.yaml`                   | Pre-commit hook definitions                                                                        |
+| `.shellcheckrc`                             | ShellCheck config (bash, warning severity)                                                         |
+| `.editorconfig`                             | Formatting config (4-space indent for .sh)                                                         |
+| `.devcontainer/devcontainer.json`           | Contributor dev environment                                                                        |
+| `LICENSE`                                   | MIT license                                                                                        |
+| `README.md`                                 | Usage docs, examples, CI badge                                                                     |
 
 ---
 
 ## Task 1: Repository Foundation
 
 **Files:**
+
 - Create: `LICENSE`
 - Create: `.editorconfig`
 - Create: `.shellcheckrc`
@@ -141,69 +142,69 @@ git commit -m "chore: add LICENSE, editorconfig, shellcheckrc, gitignore"
 ## Task 2: Feature Manifest
 
 **Files:**
+
 - Create: `src/claude-code/devcontainer-feature.json`
 
 - [ ] **Step 1: Create the feature manifest**
 
 ```json
 {
-    "id": "claude-code",
-    "version": "1.0.0",
-    "name": "Claude Code",
-    "description": "Install Claude Code CLI into any devcontainer. Supports Debian, Ubuntu, Alpine, Arch, Fedora, RHEL, Rocky, Alma, and Amazon Linux on amd64/arm64.",
-    "keywords": [
-        "claude",
-        "claude-code",
-        "anthropic",
-        "ai",
-        "cli",
-        "devcontainer"
-    ],
-    "documentationURL": "https://github.com/pkramek/claude-code-devcontainer#readme",
-    "licenseURL": "https://github.com/pkramek/claude-code-devcontainer/blob/main/LICENSE",
-    "installsAfter": [
-        "ghcr.io/devcontainers/features/node"
-    ],
-    "options": {
-        "version": {
-            "type": "string",
-            "default": "latest",
-            "description": "Claude Code version to install (semver or 'latest'). Recommend pinning for teams."
-        },
-        "nodeVersion": {
-            "type": "string",
-            "default": "lts",
-            "description": "Node.js version to install if not already present (>= 18 required). Resolved via NodeSource."
-        },
-        "installPath": {
-            "type": "string",
-            "default": "/usr/local",
-            "description": "Custom npm global install prefix. Feature ensures <installPath>/bin is on PATH."
-        },
-        "enableMcpServers": {
-            "type": "boolean",
-            "default": false,
-            "description": "Create a starter MCP server configuration at ~/.claude/mcp_servers.json (create-if-absent)."
-        },
-        "mountHostConfig": {
-            "type": "boolean",
-            "default": false,
-            "description": "Log a mounts snippet for host ~/.claude config passthrough (documentation-only, does NOT auto-mount)."
-        },
-        "shellCompletions": {
-            "type": "boolean",
-            "default": true,
-            "description": "Install shell completions for bash, zsh, and fish."
-        }
+  "id": "claude-code",
+  "version": "1.0.0",
+  "name": "Claude Code",
+  "description": "Install Claude Code CLI into any devcontainer. Supports Debian, Ubuntu, Alpine, Arch, Fedora, RHEL, Rocky, Alma, and Amazon Linux on amd64/arm64.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "cli",
+    "devcontainer"
+  ],
+  "documentationURL": "https://github.com/pkramek/claude-code-devcontainer#readme",
+  "licenseURL": "https://github.com/pkramek/claude-code-devcontainer/blob/main/LICENSE",
+  "installsAfter": ["ghcr.io/devcontainers/features/node"],
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "description": "Claude Code version to install (semver or 'latest'). Recommend pinning for teams."
     },
-    "containerEnv": {
-        "CLAUDE_CODE_INSTALLED": "true"
+    "nodeVersion": {
+      "type": "string",
+      "default": "lts",
+      "description": "Node.js version to install if not already present (>= 18 required). Resolved via NodeSource."
+    },
+    "installPath": {
+      "type": "string",
+      "default": "/usr/local",
+      "description": "Custom npm global install prefix. Feature ensures <installPath>/bin is on PATH."
+    },
+    "enableMcpServers": {
+      "type": "boolean",
+      "default": false,
+      "description": "Create a starter MCP server configuration at ~/.claude/mcp_servers.json (create-if-absent)."
+    },
+    "mountHostConfig": {
+      "type": "boolean",
+      "default": false,
+      "description": "Log a mounts snippet for host ~/.claude config passthrough (documentation-only, does NOT auto-mount)."
+    },
+    "shellCompletions": {
+      "type": "boolean",
+      "default": true,
+      "description": "Install shell completions for bash, zsh, and fish."
     }
+  },
+  "containerEnv": {
+    "CLAUDE_CODE_INSTALLED": "true"
+  }
 }
 ```
 
 **Note:** `postCreateCommand` is NOT a valid field in `devcontainer-feature.json` (it belongs in `devcontainer.json`). The runtime verification (`claude --version`) is already handled at the end of `install.sh`. The README documents a recommended `postCreateCommand` for users who want runtime verification.
-```
+
+````
 
 - [ ] **Step 2: Validate JSON is well-formed**
 
@@ -215,13 +216,14 @@ Expected: exits 0, no output
 ```bash
 git add src/claude-code/devcontainer-feature.json
 git commit -m "feat: add devcontainer-feature.json manifest"
-```
+````
 
 ---
 
 ## Task 3: Install Script — Bootstrap, Error Handling, Input Validation
 
 **Files:**
+
 - Create: `src/claude-code/install.sh`
 
 This task creates the script skeleton with the bootstrap, error handling, logging, input validation, and option parsing. No actual installation logic yet.
@@ -401,6 +403,7 @@ git commit -m "feat: add install.sh skeleton with bootstrap, logging, validation
 ## Task 4: Install Script — OS Detection and Dependency Installation
 
 **Files:**
+
 - Modify: `src/claude-code/install.sh`
 
 Add OS detection and base dependency installation functions.
@@ -546,6 +549,7 @@ git commit -m "feat: add OS detection and dependency installation"
 ## Task 5: Install Script — Node.js Installation
 
 **Files:**
+
 - Modify: `src/claude-code/install.sh`
 
 Add Node.js detection, version checking, and installation via NodeSource or distro packages.
@@ -729,6 +733,7 @@ git commit -m "feat: add Node.js detection and installation"
 ## Task 6: Install Script — PATH Configuration and Claude Code Installation
 
 **Files:**
+
 - Modify: `src/claude-code/install.sh`
 
 Add custom PATH setup and the actual Claude Code npm install.
@@ -823,6 +828,7 @@ git commit -m "feat: add PATH configuration and Claude Code installation"
 ## Task 7: Install Script — Shell Completions, MCP, Mount Docs, Cleanup
 
 **Files:**
+
 - Modify: `src/claude-code/install.sh`
 
 Add the batteries-included features and cleanup. This completes `install.sh`.
@@ -1011,6 +1017,7 @@ git commit -m "feat: add completions, MCP config, mount docs, cache cleanup"
 ## Task 8: Test Helpers and Scenarios
 
 **Files:**
+
 - Create: `test/claude-code/test.sh`
 - Create: `test/claude-code/scenarios.json`
 
@@ -1228,79 +1235,79 @@ This file defines per-scenario test configs. The CI workflow also runs the `defa
 
 ```json
 {
-    "default_options": {
-        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-        "features": {
-            "claude-code": {}
-        }
-    },
-    "completions_disabled": {
-        "image": "mcr.microsoft.com/devcontainers/base:debian",
-        "features": {
-            "claude-code": {
-                "shellCompletions": false
-            }
-        }
-    },
-    "mcp_enabled": {
-        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-        "features": {
-            "claude-code": {
-                "enableMcpServers": true
-            }
-        }
-    },
-    "custom_version": {
-        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-        "features": {
-            "claude-code": {
-                "version": "0.2.57"
-            }
-        }
-    },
-    "node_preinstalled": {
-        "image": "mcr.microsoft.com/devcontainers/javascript-node",
-        "features": {
-            "claude-code": {}
-        }
-    },
-    "custom_install_path": {
-        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-        "features": {
-            "claude-code": {
-                "installPath": "/opt/claude"
-            }
-        }
-    },
-    "mount_host_config": {
-        "image": "mcr.microsoft.com/devcontainers/base:debian",
-        "features": {
-            "claude-code": {
-                "mountHostConfig": true
-            }
-        }
-    },
-    "alpine_specific": {
-        "image": "mcr.microsoft.com/devcontainers/base:alpine",
-        "features": {
-            "claude-code": {}
-        }
-    },
-    "idempotency": {
-        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-        "features": {
-            "claude-code": {}
-        }
-    },
-    "multi_feature_combo": {
-        "image": "mcr.microsoft.com/devcontainers/javascript-node",
-        "features": {
-            "ghcr.io/devcontainers/features/node:1": {
-                "version": "22"
-            },
-            "claude-code": {}
-        }
+  "default_options": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {}
     }
+  },
+  "completions_disabled": {
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+      "claude-code": {
+        "shellCompletions": false
+      }
+    }
+  },
+  "mcp_enabled": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "enableMcpServers": true
+      }
+    }
+  },
+  "custom_version": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "version": "0.2.57"
+      }
+    }
+  },
+  "node_preinstalled": {
+    "image": "mcr.microsoft.com/devcontainers/javascript-node",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "custom_install_path": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "installPath": "/opt/claude"
+      }
+    }
+  },
+  "mount_host_config": {
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+      "claude-code": {
+        "mountHostConfig": true
+      }
+    }
+  },
+  "alpine_specific": {
+    "image": "mcr.microsoft.com/devcontainers/base:alpine",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "idempotency": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "multi_feature_combo": {
+    "image": "mcr.microsoft.com/devcontainers/javascript-node",
+    "features": {
+      "ghcr.io/devcontainers/features/node:1": {
+        "version": "22"
+      },
+      "claude-code": {}
+    }
+  }
 }
 ```
 
@@ -1321,6 +1328,7 @@ git commit -m "feat: add test helpers and scenario definitions"
 ## Task 9: Per-Scenario Test Scripts
 
 **Files:**
+
 - Create: `test/claude-code/default_options.sh`
 - Create: `test/claude-code/completions_disabled.sh`
 - Create: `test/claude-code/mcp_enabled.sh`
@@ -1608,6 +1616,7 @@ git commit -m "feat: add per-scenario test scripts"
 ## Task 10: Pre-commit Configuration
 
 **Files:**
+
 - Create: `.pre-commit-config.yaml`
 
 - [ ] **Step 1: Create `.pre-commit-config.yaml`**
@@ -1665,11 +1674,13 @@ git commit -m "chore: add pre-commit hooks configuration"
 ## Task 11: CI/CD — Test Workflow
 
 **Files:**
+
 - Create: `.github/workflows/test.yml`
 
 - [ ] **Step 1: Create `test.yml`**
 
 The CI has two test dimensions:
+
 1. **Scenario tests** — run `scenarios.json` (which maps scenario names to `test_<name>.sh` scripts). The devcontainer CLI reads `scenarios.json` directly and invokes the correct per-scenario test script automatically. Do NOT use `--skip-scenarios`.
 2. **Image matrix tests** — run the default `test.sh` (core assertions only) across all 25+ base images to verify universal install compatibility.
 
@@ -1739,7 +1750,7 @@ jobs:
   test-scenarios:
     needs: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # 10 scenarios building containers takes time
+    timeout-minutes: 60 # 10 scenarios building containers takes time
     permissions:
       contents: read
     steps:
@@ -1883,6 +1894,7 @@ git commit -m "ci: add test workflow with lint and exhaustive matrix"
 ## Task 12: CI/CD — Release Workflow
 
 **Files:**
+
 - Create: `.github/workflows/release.yml`
 
 - [ ] **Step 1: Create `release.yml`**
@@ -2003,6 +2015,7 @@ git commit -m "ci: add release workflow with version check and publish"
 ## Task 13: Contributor DevContainer and README
 
 **Files:**
+
 - Create: `.devcontainer/devcontainer.json`
 - Create: `README.md`
 
@@ -2010,29 +2023,29 @@ git commit -m "ci: add release workflow with version check and publish"
 
 ```json
 {
-    "name": "Claude Code Feature Development",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-    "features": {
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "22"
-        }
-    },
-    "postCreateCommand": "npm install -g @devcontainers/cli && pre-commit install || true",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "timonwong.shellcheck",
-                "foxundermoon.shell-format",
-                "esbenp.prettier-vscode"
-            ]
-        }
+  "name": "Claude Code Feature Development",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
     }
+  },
+  "postCreateCommand": "npm install -g @devcontainers/cli && pre-commit install || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "timonwong.shellcheck",
+        "foxundermoon.shell-format",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
 }
 ```
 
 - [ ] **Step 2: Create `README.md`**
 
-```markdown
+````markdown
 # Claude Code DevContainer Feature
 
 [![Test](https://github.com/pkramek/claude-code-devcontainer/actions/workflows/test.yml/badge.svg)](https://github.com/pkramek/claude-code-devcontainer/actions/workflows/test.yml)
@@ -2047,22 +2060,23 @@ Add this feature to your `devcontainer.json`:
 
 ```json
 {
-    "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {}
-    }
+  "features": {
+    "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {}
+  }
 }
 ```
+````
 
 ### Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `version` | string | `latest` | Claude Code version (semver or `latest`) |
-| `nodeVersion` | string | `lts` | Node.js version if not present (>= 18) |
-| `installPath` | string | `/usr/local` | Custom npm global prefix |
-| `enableMcpServers` | boolean | `false` | Create starter MCP config |
-| `mountHostConfig` | boolean | `false` | Log mount snippet for host config |
-| `shellCompletions` | boolean | `true` | Install bash/zsh/fish completions |
+| Option             | Type    | Default      | Description                              |
+| ------------------ | ------- | ------------ | ---------------------------------------- |
+| `version`          | string  | `latest`     | Claude Code version (semver or `latest`) |
+| `nodeVersion`      | string  | `lts`        | Node.js version if not present (>= 18)   |
+| `installPath`      | string  | `/usr/local` | Custom npm global prefix                 |
+| `enableMcpServers` | boolean | `false`      | Create starter MCP config                |
+| `mountHostConfig`  | boolean | `false`      | Log mount snippet for host config        |
+| `shellCompletions` | boolean | `true`       | Install bash/zsh/fish completions        |
 
 ### Examples
 
@@ -2070,11 +2084,11 @@ Pin a specific version:
 
 ```json
 {
-    "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
-            "version": "1.0.0"
-        }
+  "features": {
+    "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
+      "version": "1.0.0"
     }
+  }
 }
 ```
 
@@ -2082,11 +2096,11 @@ Enable MCP servers:
 
 ```json
 {
-    "features": {
-        "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
-            "enableMcpServers": true
-        }
+  "features": {
+    "ghcr.io/pkramek/claude-code-devcontainer/claude-code:1": {
+      "enableMcpServers": true
     }
+  }
 }
 ```
 
@@ -2098,9 +2112,9 @@ Claude Code requires authentication. Options:
 
    ```json
    {
-       "remoteEnv": {
-           "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
-       }
+     "remoteEnv": {
+       "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+     }
    }
    ```
 
@@ -2108,9 +2122,9 @@ Claude Code requires authentication. Options:
 
    ```json
    {
-       "mounts": [
-           "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached,readonly"
-       ]
+     "mounts": [
+       "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached,readonly"
+     ]
    }
    ```
 
@@ -2128,7 +2142,7 @@ Add this to your `devcontainer.json` to verify Claude Code at container start:
 
 ```json
 {
-    "postCreateCommand": "claude --version || true"
+  "postCreateCommand": "claude --version || true"
 }
 ```
 
@@ -2153,45 +2167,46 @@ You must manually change it to public:
 ## License
 
 MIT
-```
+
+````
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add .devcontainer/devcontainer.json README.md
 git commit -m "docs: add contributor devcontainer and README"
-```
+````
 
 ---
 
 ## Self-Review Checklist
 
-| Spec Section | Covered By |
-|---|---|
-| 1. Overview | All tasks combined |
-| 2. Repository Structure | Task 1-13 file map |
-| 3. Feature Manifest | Task 2 |
+| Spec Section                           | Covered By                                                         |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| 1. Overview                            | All tasks combined                                                 |
+| 2. Repository Structure                | Task 1-13 file map                                                 |
+| 3. Feature Manifest                    | Task 2                                                             |
 | 3. Lifecycle Hooks (postCreateCommand) | Task 13 (README documents recommended postCreateCommand for users) |
-| 3. Security (mountHostConfig) | Task 7 (setup_mount_docs), Task 13 (README) |
-| 4. Alpine Bootstrap | Task 3 (POSIX bootstrap) |
-| 4. Error Handling | Task 3 (set -Eeuo pipefail, traps) |
-| 4. Input Validation | Task 3 (validate_version, validate_install_path) |
-| 4. OS Detection | Task 4 (detect_os, detect_arch) |
-| 4. Dependencies | Task 4 (ensure_base_dependencies) |
-| 4. Node.js Installation | Task 5 (ensure_node, decision tree) |
-| 4. PATH Configuration | Task 6 (configure_custom_path) |
-| 4. Claude Code Installation | Task 6 (install_claude_code) |
-| 4. Shell Completions | Task 7 (setup_completions) |
-| 4. MCP Servers | Task 7 (setup_mcp_servers) |
-| 4. Mount Documentation | Task 7 (setup_mount_docs) |
-| 4. Remote User Detection | Task 3 (detect_remote_user, detect_user_home) |
-| 4. Cleanup | Task 7 (cleanup_caches) |
-| 5. Test Helpers | Task 8 (test.sh) |
-| 5. Scenarios | Task 8 (scenarios.json) |
-| 5. Per-Scenario Tests | Task 9 (all 9 scripts) |
-| 6. CI test.yml | Task 11 |
-| 6. CI release.yml | Task 12 |
-| 7. Pre-commit Hooks | Task 10 |
-| 8. License | Task 1 |
-| 10. Success Criteria | Covered by test matrix + CI |
-| 11. Versioning | Task 12 (version-check job) |
+| 3. Security (mountHostConfig)          | Task 7 (setup_mount_docs), Task 13 (README)                        |
+| 4. Alpine Bootstrap                    | Task 3 (POSIX bootstrap)                                           |
+| 4. Error Handling                      | Task 3 (set -Eeuo pipefail, traps)                                 |
+| 4. Input Validation                    | Task 3 (validate_version, validate_install_path)                   |
+| 4. OS Detection                        | Task 4 (detect_os, detect_arch)                                    |
+| 4. Dependencies                        | Task 4 (ensure_base_dependencies)                                  |
+| 4. Node.js Installation                | Task 5 (ensure_node, decision tree)                                |
+| 4. PATH Configuration                  | Task 6 (configure_custom_path)                                     |
+| 4. Claude Code Installation            | Task 6 (install_claude_code)                                       |
+| 4. Shell Completions                   | Task 7 (setup_completions)                                         |
+| 4. MCP Servers                         | Task 7 (setup_mcp_servers)                                         |
+| 4. Mount Documentation                 | Task 7 (setup_mount_docs)                                          |
+| 4. Remote User Detection               | Task 3 (detect_remote_user, detect_user_home)                      |
+| 4. Cleanup                             | Task 7 (cleanup_caches)                                            |
+| 5. Test Helpers                        | Task 8 (test.sh)                                                   |
+| 5. Scenarios                           | Task 8 (scenarios.json)                                            |
+| 5. Per-Scenario Tests                  | Task 9 (all 9 scripts)                                             |
+| 6. CI test.yml                         | Task 11                                                            |
+| 6. CI release.yml                      | Task 12                                                            |
+| 7. Pre-commit Hooks                    | Task 10                                                            |
+| 8. License                             | Task 1                                                             |
+| 10. Success Criteria                   | Covered by test matrix + CI                                        |
+| 11. Versioning                         | Task 12 (version-check job)                                        |

@@ -1,54 +1,52 @@
 {
-    "id": "claude-code",
-    "version": "1.0.0",
-    "name": "Claude Code",
-    "description": "Install Claude Code CLI into any devcontainer. Supports Debian, Ubuntu, Alpine, Arch, Fedora, RHEL, Rocky, Alma, and Amazon Linux on amd64/arm64.",
-    "keywords": [
-        "claude",
-        "claude-code",
-        "anthropic",
-        "ai",
-        "cli",
-        "devcontainer"
-    ],
-    "documentationURL": "https://github.com/pkramek/claude-devcontainer#readme",
-    "licenseURL": "https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE",
-    "installsAfter": [
-        "ghcr.io/devcontainers/features/node"
-    ],
-    "options": {
-        "version": {
-            "type": "string",
-            "default": "latest",
-            "description": "Claude Code version to install (semver or 'latest'). Recommend pinning for teams."
-        },
-        "nodeVersion": {
-            "type": "string",
-            "default": "lts",
-            "description": "Node.js version to install if not already present (>= 18 required)."
-        },
-        "installPath": {
-            "type": "string",
-            "default": "/usr/local",
-            "description": "Custom npm global install prefix. Feature ensures <installPath>/bin is on PATH."
-        },
-        "enableMcpServers": {
-            "type": "boolean",
-            "default": false,
-            "description": "Create a starter MCP server configuration at ~/.claude/mcp_servers.json (create-if-absent)."
-        },
-        "mountHostConfig": {
-            "type": "boolean",
-            "default": false,
-            "description": "Log a mounts snippet for host ~/.claude config passthrough (documentation-only, does NOT auto-mount)."
-        },
-        "shellCompletions": {
-            "type": "boolean",
-            "default": true,
-            "description": "Install shell completions for bash, zsh, and fish."
-        }
+  "id": "claude-code",
+  "version": "1.0.0",
+  "name": "Claude Code",
+  "description": "Install Claude Code CLI into any devcontainer. Supports Debian, Ubuntu, Alpine, Arch, Fedora, RHEL, Rocky, Alma, and Amazon Linux on amd64/arm64.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "cli",
+    "devcontainer"
+  ],
+  "documentationURL": "https://github.com/pkramek/claude-devcontainer#readme",
+  "licenseURL": "https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE",
+  "installsAfter": ["ghcr.io/devcontainers/features/node"],
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "description": "Claude Code version to install (semver or 'latest'). Recommend pinning for teams."
     },
-    "containerEnv": {
-        "CLAUDE_CODE_INSTALLED": "true"
+    "nodeVersion": {
+      "type": "string",
+      "default": "lts",
+      "description": "Node.js version to install if not already present (>= 18 required)."
+    },
+    "installPath": {
+      "type": "string",
+      "default": "/usr/local",
+      "description": "Custom npm global install prefix. Feature ensures <installPath>/bin is on PATH."
+    },
+    "enableMcpServers": {
+      "type": "boolean",
+      "default": false,
+      "description": "Create a starter MCP server configuration at ~/.claude/mcp_servers.json (create-if-absent)."
+    },
+    "mountHostConfig": {
+      "type": "boolean",
+      "default": false,
+      "description": "Log a mounts snippet for host ~/.claude config passthrough (documentation-only, does NOT auto-mount)."
+    },
+    "shellCompletions": {
+      "type": "boolean",
+      "default": true,
+      "description": "Install shell completions for bash, zsh, and fish."
     }
+  },
+  "containerEnv": {
+    "CLAUDE_CODE_INSTALLED": "true"
+  }
 }

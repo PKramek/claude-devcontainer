@@ -63,14 +63,14 @@ Follows the official `devcontainers/feature-template` convention. Per-scenario t
 
 ### Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `version` | string | `"latest"` | Claude Code version to install (semver or `"latest"`. Note: `"latest"` is non-deterministic across builds — recommend pinning for teams) |
-| `nodeVersion` | string | `"lts"` | Node.js version to install if not already present. Resolved via NodeSource, not distro packages. Minimum floor: Node.js >= 18. |
-| `installPath` | string | `"/usr/local"` | Custom npm global install prefix. The feature will ensure `<installPath>/bin` is on PATH for all shell contexts. |
-| `enableMcpServers` | boolean | `false` | Drop a starter MCP configuration file at `~/.claude/mcp_servers.json` (create-if-absent, never overwrite). |
-| `mountHostConfig` | boolean | `false` | **Documentation-only.** When true, the feature adds a comment to build output with the `mounts` snippet users should add to their `devcontainer.json`. Does NOT auto-mount. Defaults to false for security. |
-| `shellCompletions` | boolean | `true` | Install shell completions for detected shells (bash, zsh, fish). |
+| Option             | Type    | Default        | Description                                                                                                                                                                                                 |
+| ------------------ | ------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`          | string  | `"latest"`     | Claude Code version to install (semver or `"latest"`. Note: `"latest"` is non-deterministic across builds — recommend pinning for teams)                                                                    |
+| `nodeVersion`      | string  | `"lts"`        | Node.js version to install if not already present. Resolved via NodeSource, not distro packages. Minimum floor: Node.js >= 18.                                                                              |
+| `installPath`      | string  | `"/usr/local"` | Custom npm global install prefix. The feature will ensure `<installPath>/bin` is on PATH for all shell contexts.                                                                                            |
+| `enableMcpServers` | boolean | `false`        | Drop a starter MCP configuration file at `~/.claude/mcp_servers.json` (create-if-absent, never overwrite).                                                                                                  |
+| `mountHostConfig`  | boolean | `false`        | **Documentation-only.** When true, the feature adds a comment to build output with the `mounts` snippet users should add to their `devcontainer.json`. Does NOT auto-mount. Defaults to false for security. |
+| `shellCompletions` | boolean | `true`         | Install shell completions for detected shells (bash, zsh, fish).                                                                                                                                            |
 
 ### Lifecycle Hooks
 
@@ -83,6 +83,7 @@ The original `autoUpdate` option was removed because `install.sh` runs at image 
 ### Security Considerations for `mountHostConfig`
 
 Mounting `~/.claude` from the host exposes API keys and tokens inside the container. The feature defaults `mountHostConfig` to `false` and documents:
+
 - The security implications (container compromise = credential exposure)
 - The cross-platform mount syntax using `${localEnv:HOME}` for macOS/Linux/WSL2 compatibility
 - That `~/.claude` path may change in future Claude Code versions
@@ -94,6 +95,7 @@ The feature does NOT auto-mount. It provides documentation only, leaving the sec
 ### Shell Choice: Bash (not POSIX sh)
 
 The script uses `#!/usr/bin/env bash` explicitly. Rationale:
+
 - POSIX sh (`dash` on Debian, `ash` on Alpine) has unreliable `set -e` semantics and lacks arrays, `[[ ]]`, and `pipefail`
 - Bash is pre-installed on Debian, Ubuntu, Fedora, Arch, RHEL, Rocky, Alma, and Amazon Linux
 - ShellCheck is configured with `--shell=bash` via `.shellcheckrc`
@@ -200,6 +202,7 @@ These are **safety gates** (preventing shell injection), not correctness gates. 
 **Base dependencies** (installed if missing): `curl`, `git`, `ca-certificates`
 
 All package manager invocations use non-interactive flags:
+
 - `apt-get -y`
 - `apk add --no-cache`
 - `pacman -S --noconfirm --needed`
@@ -259,6 +262,7 @@ The `timeout 300` (5 minutes) prevents indefinite hangs on network issues during
 ### Step 5: Batteries-Included Setup
 
 **Shell completions** (`shellCompletions=true`):
+
 - Detect available shells by checking for their completion directories
 - Bash: `/etc/bash_completion.d/claude` (Debian/Ubuntu/Fedora) or `/usr/share/bash-completion/completions/claude` (Arch/Alpine)
 - Zsh: `/usr/share/zsh/site-functions/_claude`
@@ -266,12 +270,14 @@ The `timeout 300` (5 minutes) prevents indefinite hangs on network issues during
 - **Graceful degradation:** If completion installation fails, log a warning but do NOT abort the build
 
 **MCP servers** (`enableMcpServers=true`):
+
 - Target file: `${_REMOTE_USER_HOME}/.claude/mcp_servers.json`
 - Strategy: **create-if-absent** — never overwrite an existing file
 - Content: minimal starter config with comments explaining how to extend
 - Owned by `$_REMOTE_USER`
 
 **Host config documentation** (`mountHostConfig=true`):
+
 - Logs the following snippet to build output:
   ```
   To mount your host Claude config, add this to your devcontainer.json:
@@ -282,6 +288,7 @@ The `timeout 300` (5 minutes) prevents indefinite hangs on network issues during
 ### Step 6: Permissions and Cleanup
 
 **Remote user detection** (using DevContainer-provided variables):
+
 1. Use `$_REMOTE_USER` if set
 2. Else use `$_CONTAINER_USER` if set
 3. Else detect first non-root user from `/etc/passwd` with a valid shell
@@ -290,11 +297,13 @@ The `timeout 300` (5 minutes) prevents indefinite hangs on network issues during
 Home directory: use `$_REMOTE_USER_HOME` if set, else look up via `getent passwd "${DETECTED_USER}" | cut -d: -f6`. **Do NOT use `eval echo ~${user}`** — this is a code injection risk if the username contains unexpected characters.
 
 **Ownership:** Set `chown` on specific paths only (never `chown -R` on the entire home directory):
+
 - `~/.claude/` directory (if created by this feature)
 - `~/.claude/mcp_servers.json` (if created by `enableMcpServers`)
 - No other files in the home directory are touched
 
 **Cache cleanup:**
+
 - `apt-get clean && rm -rf /var/lib/apt/lists/*` (Debian/Ubuntu)
 - `rm -rf /var/cache/apk/*` (Alpine)
 - `pacman -Scc --noconfirm` (Arch)
@@ -308,6 +317,7 @@ Home directory: use `$_REMOTE_USER_HOME` if set, else look up via `getent passwd
 ### Test Architecture
 
 Each scenario in `scenarios.json` has a dedicated test script at `test/claude-code/test_<scenario>.sh`. This enables:
+
 - **Positive assertions:** verify expected behavior when an option is enabled
 - **Negative assertions:** verify things are NOT present when an option is disabled
 - **Option-specific verification:** e.g., pinned version matches exactly
@@ -317,6 +327,7 @@ Test scripts run as the **non-root remote user**, not root. This validates the p
 ### Shared Test Helpers (`test.sh`)
 
 Common assertion functions used by all scenario scripts:
+
 - `check_command_exists <cmd>` — verify binary on PATH
 - `check_command_version <cmd> <expected>` — verify version output
 - `check_file_exists <path>` — verify file presence
@@ -337,23 +348,24 @@ Common assertion functions used by all scenario scripts:
 
 ### Per-Scenario Assertions
 
-| Scenario | Assertions |
-|---|---|
-| `default_options` | Completions exist for detected shells. MCP config absent. |
-| `completions_disabled` | Completion files do NOT exist for any shell. |
-| `mcp_enabled` | `~/.claude/mcp_servers.json` exists, is valid JSON, owned by remote user. |
-| `custom_version` | `claude --version` outputs exact pinned version. |
-| `node_preinstalled` | Existing Node.js version unchanged. No second Node.js installation. |
-| `custom_install_path` | Binary at `<installPath>/bin/claude`. PATH includes `<installPath>/bin`. |
-| `mount_host_config` | Build output contains the mount snippet documentation. No actual mount created. |
-| `alpine_specific` | Bash was installed. Completions at Alpine-specific paths. `apk` caches cleaned. |
-| `idempotency` | Run install twice — no errors, same end state. |
+| Scenario               | Assertions                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `default_options`      | Completions exist for detected shells. MCP config absent.                       |
+| `completions_disabled` | Completion files do NOT exist for any shell.                                    |
+| `mcp_enabled`          | `~/.claude/mcp_servers.json` exists, is valid JSON, owned by remote user.       |
+| `custom_version`       | `claude --version` outputs exact pinned version.                                |
+| `node_preinstalled`    | Existing Node.js version unchanged. No second Node.js installation.             |
+| `custom_install_path`  | Binary at `<installPath>/bin/claude`. PATH includes `<installPath>/bin`.        |
+| `mount_host_config`    | Build output contains the mount snippet documentation. No actual mount created. |
+| `alpine_specific`      | Bash was installed. Completions at Alpine-specific paths. `apk` caches cleaned. |
+| `idempotency`          | Run install twice — no errors, same end state.                                  |
 
 ### Test Matrix (`scenarios.json`)
 
 Each scenario specifies a base image and feature options.
 
 **Raw OS images:**
+
 - `ubuntu:22.04`, `ubuntu:24.04`
 - `debian:bullseye`, `debian:bookworm`
 - `alpine:3.19`, `alpine:3.20`, `alpine:3.21`
@@ -363,12 +375,14 @@ Each scenario specifies a base image and feature options.
 - `amazonlinux:2023`
 
 **DevContainer base images:**
+
 - `mcr.microsoft.com/devcontainers/base:debian`
 - `mcr.microsoft.com/devcontainers/base:ubuntu`
 - `mcr.microsoft.com/devcontainers/base:alpine`
 - `mcr.microsoft.com/devcontainers/universal:2` (Codespaces default — critical)
 
 **Language-specific devcontainer images:**
+
 - `mcr.microsoft.com/devcontainers/python`
 - `mcr.microsoft.com/devcontainers/javascript-node`
 - `mcr.microsoft.com/devcontainers/typescript-node`
@@ -381,9 +395,11 @@ Each scenario specifies a base image and feature options.
 - `mcr.microsoft.com/devcontainers/php`
 
 **Multi-feature combo scenario:**
+
 - `devcontainers/javascript-node` with `ghcr.io/devcontainers/features/node` already present — validates `installsAfter` ordering and no version conflict
 
 **Concrete `scenarios.json` example** (subset — full file includes all scenarios):
+
 ```json
 {
   "default_options": {
@@ -452,6 +468,7 @@ Each scenario specifies a base image and feature options.
 **amd64:** Full matrix — all images and all scenarios. Primary gate.
 
 **arm64:** Reduced matrix on **native** GitHub Actions arm64 runners (`runs-on: ubuntu-24.04-arm`). No QEMU emulation (too slow, too flaky). Tested images:
+
 - `ubuntu:24.04`
 - `alpine:3.21`
 - `mcr.microsoft.com/devcontainers/base:debian`
@@ -504,15 +521,15 @@ permissions:
 **`release.yml`** — runs on `v*` tag push:
 
 ```yaml
-permissions: {}  # deny all at top level
+permissions: {} # deny all at top level
 
 concurrency:
   group: "release-${{ github.repository }}"
-  cancel-in-progress: false  # never cancel an in-flight release
+  cancel-in-progress: false # never cancel an in-flight release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 ```
 
 **Stages** (each job declares its own permissions):
@@ -533,12 +550,14 @@ on:
 ## 7. Pre-commit Hooks
 
 ### `.shellcheckrc`
+
 ```
 shell=bash
 severity=warning
 ```
 
 ### `.editorconfig`
+
 ```ini
 [*.sh]
 indent_style = space
@@ -547,20 +566,20 @@ indent_size = 4
 
 ### `.pre-commit-config.yaml`
 
-| Hook | Source | Purpose |
-|---|---|---|
-| `shellcheck` | `koalaman/shellcheck-precommit` | Lint shell scripts (bash dialect, warning severity) |
-| `shfmt` | `scop/pre-commit-shfmt` | Enforce consistent formatting (4-space indent per `.editorconfig`) |
-| `check-json` | `pre-commit/pre-commit-hooks` | Validate JSON files |
-| `check-yaml` | `pre-commit/pre-commit-hooks` | Validate YAML files |
-| `trailing-whitespace` | `pre-commit/pre-commit-hooks` | Remove trailing whitespace |
-| `end-of-file-fixer` | `pre-commit/pre-commit-hooks` | Ensure newline at end of files |
-| `check-merge-conflict` | `pre-commit/pre-commit-hooks` | Prevent committing merge markers |
-| `detect-private-key` | `pre-commit/pre-commit-hooks` | Prevent committing SSH private keys |
-| `check-added-large-files` | `pre-commit/pre-commit-hooks` | Prevent committing large binaries |
-| `no-commit-to-branch` | `pre-commit/pre-commit-hooks` | Protect `main` branch from direct pushes |
-| `prettier` | `pre-commit/mirrors-prettier` | Format JSON, YAML, and Markdown |
-| `markdownlint` | `igorshubovych/markdownlint-cli` | Structural Markdown linting |
+| Hook                      | Source                           | Purpose                                                            |
+| ------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| `shellcheck`              | `koalaman/shellcheck-precommit`  | Lint shell scripts (bash dialect, warning severity)                |
+| `shfmt`                   | `scop/pre-commit-shfmt`          | Enforce consistent formatting (4-space indent per `.editorconfig`) |
+| `check-json`              | `pre-commit/pre-commit-hooks`    | Validate JSON files                                                |
+| `check-yaml`              | `pre-commit/pre-commit-hooks`    | Validate YAML files                                                |
+| `trailing-whitespace`     | `pre-commit/pre-commit-hooks`    | Remove trailing whitespace                                         |
+| `end-of-file-fixer`       | `pre-commit/pre-commit-hooks`    | Ensure newline at end of files                                     |
+| `check-merge-conflict`    | `pre-commit/pre-commit-hooks`    | Prevent committing merge markers                                   |
+| `detect-private-key`      | `pre-commit/pre-commit-hooks`    | Prevent committing SSH private keys                                |
+| `check-added-large-files` | `pre-commit/pre-commit-hooks`    | Prevent committing large binaries                                  |
+| `no-commit-to-branch`     | `pre-commit/pre-commit-hooks`    | Protect `main` branch from direct pushes                           |
+| `prettier`                | `pre-commit/mirrors-prettier`    | Format JSON, YAML, and Markdown                                    |
+| `markdownlint`            | `igorshubovych/markdownlint-cli` | Structural Markdown linting                                        |
 
 **Note:** There is no standard pre-commit hook to enforce `.sh` files have the execute bit set. This will be validated in CI via a custom script step instead.
 
@@ -571,6 +590,7 @@ MIT License — open source, free to use.
 ## 9. Pre-Implementation Quality Gates
 
 Before writing any code:
+
 1. **Deep research agent** — Validate this design against the latest devcontainers spec, `devcontainers/action` documentation, and `@devcontainers/cli` test framework behavior
 2. **Parallel review agents** — Architecture, shell scripting, and CI/CD review passes (completed: 2 rounds, all critical findings resolved)
 
@@ -597,10 +617,10 @@ Users pin by major version: `claude-code:1`. This is independent of the Claude C
 
 ## 12. Known Assumptions and Risks
 
-| Assumption | Risk if Wrong | Mitigation |
-|---|---|---|
-| Claude Code npm package is pure JS (no native addons) | Alpine support breaks | Remove Alpine from matrix, document limitation |
-| `~/.claude` is the config directory | Host config mount breaks | Check `claude` CLI for config path discovery |
-| NodeSource supports all target distros | Node.js install fails | Fallback to distro packages for unsupported distros |
-| Alpine/Arch distro packages ship Node.js >= 18 | Hard failure with error message directing user to use a newer base image | Older Alpine (< 3.19) and theoretical older Arch images may ship Node < 18. No NodeSource fallback exists for Alpine/Arch — this is a known limitation. |
-| GitHub Actions arm64 runners available for public repos | arm64 testing blocked | Fall back to QEMU for a reduced subset |
+| Assumption                                              | Risk if Wrong                                                            | Mitigation                                                                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code npm package is pure JS (no native addons)   | Alpine support breaks                                                    | Remove Alpine from matrix, document limitation                                                                                                          |
+| `~/.claude` is the config directory                     | Host config mount breaks                                                 | Check `claude` CLI for config path discovery                                                                                                            |
+| NodeSource supports all target distros                  | Node.js install fails                                                    | Fallback to distro packages for unsupported distros                                                                                                     |
+| Alpine/Arch distro packages ship Node.js >= 18          | Hard failure with error message directing user to use a newer base image | Older Alpine (< 3.19) and theoretical older Arch images may ship Node < 18. No NodeSource fallback exists for Alpine/Arch — this is a known limitation. |
+| GitHub Actions arm64 runners available for public repos | arm64 testing blocked                                                    | Fall back to QEMU for a reduced subset                                                                                                                  |

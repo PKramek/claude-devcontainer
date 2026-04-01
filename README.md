@@ -12,22 +12,22 @@ Add this feature to your `devcontainer.json`:
 
 ```json
 {
-    "features": {
-        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {}
-    }
+  "features": {
+    "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {}
+  }
 }
 ```
 
 ### Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `version` | string | `latest` | Claude Code version (semver or `latest`) |
-| `nodeVersion` | string | `lts` | Node.js version if not present (>= 18) |
-| `installPath` | string | `/usr/local` | Custom npm global prefix |
-| `enableMcpServers` | boolean | `false` | Create starter MCP config |
-| `mountHostConfig` | boolean | `false` | Log mount snippet for host config |
-| `shellCompletions` | boolean | `true` | Install bash/zsh/fish completions |
+| Option             | Type    | Default      | Description                              |
+| ------------------ | ------- | ------------ | ---------------------------------------- |
+| `version`          | string  | `latest`     | Claude Code version (semver or `latest`) |
+| `nodeVersion`      | string  | `lts`        | Node.js version if not present (>= 18)   |
+| `installPath`      | string  | `/usr/local` | Custom npm global prefix                 |
+| `enableMcpServers` | boolean | `false`      | Create starter MCP config                |
+| `mountHostConfig`  | boolean | `false`      | Log mount snippet for host config        |
+| `shellCompletions` | boolean | `true`       | Install bash/zsh/fish completions        |
 
 ### Examples
 
@@ -35,11 +35,11 @@ Pin a specific version:
 
 ```json
 {
-    "features": {
-        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
-            "version": "1.0.0"
-        }
+  "features": {
+    "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
+      "version": "1.0.0"
     }
+  }
 }
 ```
 
@@ -47,11 +47,11 @@ Enable MCP servers:
 
 ```json
 {
-    "features": {
-        "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
-            "enableMcpServers": true
-        }
+  "features": {
+    "ghcr.io/pkramek/claude-devcontainer/claude-code:1": {
+      "enableMcpServers": true
     }
+  }
 }
 ```
 
@@ -67,9 +67,9 @@ Claude Code requires authentication. Three options:
 
    ```json
    {
-       "remoteEnv": {
-           "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
-       }
+     "remoteEnv": {
+       "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+     }
    }
    ```
 
@@ -77,9 +77,9 @@ Claude Code requires authentication. Three options:
 
    ```json
    {
-       "mounts": [
-           "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind,consistency=cached,readonly"
-       ]
+     "mounts": [
+       "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind,consistency=cached,readonly"
+     ]
    }
    ```
 
@@ -98,7 +98,7 @@ Add this to your `devcontainer.json` to verify Claude Code at container start:
 
 ```json
 {
-    "postCreateCommand": "claude --version || true"
+  "postCreateCommand": "claude --version || true"
 }
 ```
 
