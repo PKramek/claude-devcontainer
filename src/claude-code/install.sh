@@ -13,13 +13,13 @@
 
 # --- POSIX-compatible bootstrap (runs under /bin/sh on Alpine) ---
 if [ -z "${BASH_VERSION:-}" ]; then
-    if command -v apk > /dev/null 2>&1; then
-        apk add --no-cache bash > /dev/null || {
+    if command -v apk >/dev/null 2>&1; then
+        apk add --no-cache bash >/dev/null || {
             echo "[claude-code feature] ERROR: Failed to install bash via apk." >&2
             exit 1
         }
     fi
-    if ! command -v bash > /dev/null 2>&1; then
+    if ! command -v bash >/dev/null 2>&1; then
         echo "[claude-code feature] ERROR: bash is required but could not be found or installed." >&2
         exit 1
     fi
@@ -48,8 +48,8 @@ cleanup() {
 }
 
 # --- Logging ---
-log_info()  { echo "${FEATURE_LOG_PREFIX} $*"; }
-log_warn()  { echo "${FEATURE_LOG_PREFIX} WARNING: $*" >&2; }
+log_info() { echo "${FEATURE_LOG_PREFIX} $*"; }
+log_warn() { echo "${FEATURE_LOG_PREFIX} WARNING: $*" >&2; }
 log_error() { echo "${FEATURE_LOG_PREFIX} ERROR: $*" >&2; }
 log_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then
@@ -155,24 +155,24 @@ detect_os() {
     fi
 
     case "${id}" in
-        debian|ubuntu|linuxmint)
+        debian | ubuntu | linuxmint)
             echo "debian"
             ;;
         alpine)
             echo "alpine"
             ;;
-        arch|archarm|endeavouros|manjaro)
+        arch | archarm | endeavouros | manjaro)
             echo "arch"
             ;;
-        fedora|rhel|centos|rocky|almalinux|amzn)
+        fedora | rhel | centos | rocky | almalinux | amzn)
             echo "rhel"
             ;;
         *)
             # Fallback to ID_LIKE
             case "${id_like}" in
-                *debian*|*ubuntu*) echo "debian" ;;
-                *arch*)            echo "arch" ;;
-                *fedora*|*rhel*)   echo "rhel" ;;
+                *debian* | *ubuntu*) echo "debian" ;;
+                *arch*) echo "arch" ;;
+                *fedora* | *rhel*) echo "rhel" ;;
                 *)
                     log_error "Unsupported OS: ID=${id}, ID_LIKE=${id_like}"
                     exit 1
@@ -186,7 +186,7 @@ detect_arch() {
     local arch
     arch=$(uname -m)
     case "${arch}" in
-        x86_64)  echo "amd64" ;;
+        x86_64) echo "amd64" ;;
         aarch64) echo "arm64" ;;
         *)
             log_error "Unsupported architecture: ${arch}"
@@ -219,7 +219,7 @@ install_packages() {
             pacman -S --noconfirm --needed "${packages[@]}"
             ;;
         rhel)
-            if command -v dnf > /dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
                 dnf install -y "${packages[@]}"
             else
                 yum install -y "${packages[@]}"
@@ -231,13 +231,13 @@ install_packages() {
 ensure_base_dependencies() {
     local missing=()
 
-    command -v curl > /dev/null 2>&1 || missing+=("curl")
-    command -v git > /dev/null 2>&1 || missing+=("git")
+    command -v curl >/dev/null 2>&1 || missing+=("curl")
+    command -v git >/dev/null 2>&1 || missing+=("git")
 
     # Always ensure ca-certificates for TLS verification (needed before any curl to nodejs.org/npm)
     case "${OS_FAMILY}" in
         alpine)
-            command -v update-ca-certificates > /dev/null 2>&1 || missing+=("ca-certificates")
+            command -v update-ca-certificates >/dev/null 2>&1 || missing+=("ca-certificates")
             ;;
         debian)
             [[ -d /etc/ssl/certs ]] && [[ -n "$(ls /etc/ssl/certs/ 2>/dev/null)" ]] || missing+=("ca-certificates")
@@ -256,10 +256,10 @@ ensure_base_dependencies() {
     # xz-utils (Debian) / xz (RHEL) may be absent on minimal base images.
     case "${OS_FAMILY}" in
         debian)
-            command -v xz > /dev/null 2>&1 || missing+=("xz-utils")
+            command -v xz >/dev/null 2>&1 || missing+=("xz-utils")
             ;;
         rhel)
-            command -v xz > /dev/null 2>&1 || missing+=("xz")
+            command -v xz >/dev/null 2>&1 || missing+=("xz")
             ;;
     esac
 
@@ -295,19 +295,19 @@ resolve_node_version() {
 
     # Primary: parse index.tab (TSV) via awk — requires no JSON parser, no python3, no node.
     # The header row identifies the "lts" column; non-LTS rows contain "-" in that column.
-    lts_version=$(curl -fsSL https://nodejs.org/dist/index.tab 2>/dev/null \
-        | awk 'NR==1 { for (i=1;i<=NF;i++) { if ($i=="lts") lts_col=i } next }
+    lts_version=$(curl -fsSL https://nodejs.org/dist/index.tab 2>/dev/null |
+        awk 'NR==1 { for (i=1;i<=NF;i++) { if ($i=="lts") lts_col=i } next }
                lts_col && $lts_col!="-" { gsub(/^v/,"",$1); split($1,v,"."); print v[1]; exit }' \
-        2>/dev/null || echo "")
+            2>/dev/null || echo "")
 
     # Fallback: grep/sed on index.json — compatible with all POSIX systems.
     # LTS entries have "lts":"Codename"; non-LTS entries have "lts":false.
     if [[ -z "${lts_version}" ]]; then
-        lts_version=$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null \
-            | grep -m 1 '"lts":"' \
-            | grep -o '"version":"v[0-9]*' \
-            | sed 's/.*v//' \
-            2>/dev/null || echo "")
+        lts_version=$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null |
+            grep -m 1 '"lts":"' |
+            grep -o '"version":"v[0-9]*' |
+            sed 's/.*v//' \
+                2>/dev/null || echo "")
     fi
 
     if [[ -z "${lts_version}" ]]; then
@@ -323,9 +323,12 @@ install_node_binary() {
     local version="$1"
     local arch_label
     case "$(uname -m)" in
-        x86_64)  arch_label="x64" ;;
+        x86_64) arch_label="x64" ;;
         aarch64) arch_label="arm64" ;;
-        *)       log_error "Unsupported arch for Node.js binary: $(uname -m)"; exit 1 ;;
+        *)
+            log_error "Unsupported arch for Node.js binary: $(uname -m)"
+            exit 1
+            ;;
     esac
 
     log_info "Installing Node.js ${version} via official binary tarball..."
@@ -419,10 +422,10 @@ ensure_node() {
     log_debug "Resolved Node.js version: ${resolved_version}"
 
     case "${OS_FAMILY}" in
-        debian|rhel)
+        debian | rhel)
             install_node_binary "${resolved_version}"
             ;;
-        alpine|arch)
+        alpine | arch)
             install_node_distro
             ;;
         *)
@@ -449,7 +452,7 @@ configure_custom_path() {
 
     # Persistent PATH for login shells (bash, zsh)
     mkdir -p /etc/profile.d
-    cat > /etc/profile.d/claude-code.sh << PATHEOF
+    cat >/etc/profile.d/claude-code.sh <<PATHEOF
 # Added by Claude Code DevContainer Feature
 export PATH="${INSTALL_PATH}/bin:\${PATH}"
 PATHEOF
@@ -461,7 +464,7 @@ PATHEOF
         # Write to /etc/profile (not /etc/environment which is PAM-specific)
         if ! grep -q 'claude-code' /etc/profile 2>/dev/null; then
             # shellcheck disable=SC2016  # ${PATH} is intentionally literal — expands at shell startup
-            printf 'export PATH="%s/bin:${PATH}"  # claude-code\n' "${INSTALL_PATH}" >> /etc/profile
+            printf 'export PATH="%s/bin:${PATH}"  # claude-code\n' "${INSTALL_PATH}" >>/etc/profile
         fi
     fi
 
@@ -522,14 +525,14 @@ setup_completions() {
         bash_comp_dir="/etc/bash_completion.d"
     fi
     if [[ -n "${bash_comp_dir}" ]]; then
-        claude completions bash > "${bash_comp_dir}/claude" 2>/dev/null || {
+        claude completions bash >"${bash_comp_dir}/claude" 2>/dev/null || {
             log_warn "Failed to install bash completions."
         }
     fi
 
     # Zsh completions
     if [[ -d /usr/share/zsh/site-functions ]] || mkdir -p /usr/share/zsh/site-functions 2>/dev/null; then
-        claude completions zsh > /usr/share/zsh/site-functions/_claude 2>/dev/null || {
+        claude completions zsh >/usr/share/zsh/site-functions/_claude 2>/dev/null || {
             log_warn "Failed to install zsh completions."
         }
     fi
@@ -543,7 +546,7 @@ setup_completions() {
         fi
     done
     if [[ -n "${fish_comp_dir}" ]]; then
-        claude completions fish > "${fish_comp_dir}/claude.fish" 2>/dev/null || {
+        claude completions fish >"${fish_comp_dir}/claude.fish" 2>/dev/null || {
             log_warn "Failed to install fish completions."
         }
     fi
@@ -571,7 +574,7 @@ setup_mcp_servers() {
     log_info "Creating starter MCP configuration..."
     mkdir -p "${claude_dir}"
 
-    cat > "${mcp_config}" << 'MCPEOF'
+    cat >"${mcp_config}" <<'MCPEOF'
 {
     "mcpServers": {}
 }
@@ -627,7 +630,7 @@ cleanup_caches() {
             pacman -Sc --noconfirm 2>/dev/null || true
             ;;
         rhel)
-            if command -v dnf > /dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
                 dnf clean all
             else
                 yum clean all

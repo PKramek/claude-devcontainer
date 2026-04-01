@@ -21,7 +21,7 @@ fail() {
 
 check_command_exists() {
     local cmd="$1"
-    if command -v "${cmd}" > /dev/null 2>&1; then
+    if command -v "${cmd}" >/dev/null 2>&1; then
         pass "${cmd} is on PATH"
     else
         fail "${cmd} not found on PATH"
@@ -42,7 +42,7 @@ check_command_version() {
 
 check_command_runs() {
     local cmd="$1"
-    if "${cmd}" --version > /dev/null 2>&1; then
+    if "${cmd}" --version >/dev/null 2>&1; then
         pass "${cmd} --version exits 0"
     else
         fail "${cmd} --version failed"
@@ -133,7 +133,7 @@ check_file_owner() {
 check_file_valid_json() {
     local path="$1"
     # Use node (guaranteed present) with argv to avoid path injection
-    if node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "${path}" > /dev/null 2>&1; then
+    if node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "${path}" >/dev/null 2>&1; then
         pass "Valid JSON: ${path}"
     else
         fail "Invalid JSON: ${path}"
