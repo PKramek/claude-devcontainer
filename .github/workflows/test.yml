@@ -85,7 +85,14 @@ jobs:
         run: npm install -g @devcontainers/cli@0.85.0
 
       - name: Run all scenarios
-        run: devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
+        run: |
+          devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
+          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/scenario-test-output.log; then
+            echo "ERROR: Test output contains failures."
+            exit 1
+          fi
 
       - name: Upload logs on failure
         if: failure()
@@ -153,6 +160,12 @@ jobs:
             --skip-scenarios \
             --base-image "${{ matrix.image }}" \
             --project-folder . 2>&1 | tee /tmp/test-output.log
+          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then
+            echo "ERROR: Test output contains failures."
+            exit 1
+          fi
 
       - name: Upload logs on failure
         if: failure()
@@ -194,6 +207,12 @@ jobs:
             --skip-scenarios \
             --base-image "${{ matrix.image }}" \
             --project-folder . 2>&1 | tee /tmp/test-output.log
+          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch" /tmp/test-output.log; then
+            echo "ERROR: Test output contains failures."
+            exit 1
+          fi
 
       - name: Upload logs on failure
         if: failure()
