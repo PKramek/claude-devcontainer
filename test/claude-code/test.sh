@@ -11,12 +11,12 @@ TESTS_FAILED=0
 
 pass() {
     echo "  PASS: $*"
-    ((TESTS_PASSED++))
+    TESTS_PASSED=$((TESTS_PASSED + 1))
 }
 
 fail() {
     echo "  FAIL: $*" >&2
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
 check_command_exists() {
