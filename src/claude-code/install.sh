@@ -234,13 +234,21 @@ ensure_base_dependencies() {
     command -v curl > /dev/null 2>&1 || missing+=("curl")
     command -v git > /dev/null 2>&1 || missing+=("git")
 
-    # Always ensure ca-certificates for TLS verification
+    # Always ensure ca-certificates for TLS verification (needed before any curl to nodejs.org/npm)
     case "${OS_FAMILY}" in
         alpine)
             command -v update-ca-certificates > /dev/null 2>&1 || missing+=("ca-certificates")
             ;;
         debian)
             [[ -d /etc/ssl/certs ]] && [[ -n "$(ls /etc/ssl/certs/ 2>/dev/null)" ]] || missing+=("ca-certificates")
+            ;;
+        arch)
+            # ca-certificates may be absent on raw archlinux:latest images
+            [[ -d /etc/ssl/certs ]] && [[ -n "$(ls /etc/ssl/certs/ 2>/dev/null)" ]] || missing+=("ca-certificates")
+            ;;
+        rhel)
+            # ca-certificates may be absent on minimal Amazon Linux / Rocky / Alma images
+            [[ -d /etc/pki/tls/certs ]] && [[ -n "$(ls /etc/pki/tls/certs/ 2>/dev/null)" ]] || missing+=("ca-certificates")
             ;;
     esac
 
@@ -267,20 +275,37 @@ get_node_major_version() {
 
 resolve_node_version() {
     local requested="$1"
-    if [[ "${requested}" == "lts" ]]; then
-        local lts_version
-        lts_version=$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null \
-            | node -e "
-                const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-                const lts = data.find(r => r.lts);
-                console.log(lts ? lts.version.replace(/^v/,'').split('.')[0] : '22');
-            " 2>/dev/null || echo "22")
-        if [[ -z "${lts_version}" ]]; then lts_version="22"; fi
-        log_info "Resolved LTS to Node.js ${lts_version}"
-        echo "${lts_version}"
-    else
+    if [[ "${requested}" != "lts" ]]; then
         echo "${requested}"
+        return
     fi
+
+    local lts_version=""
+
+    # Primary: parse index.tab (TSV) via awk — requires no JSON parser, no python3, no node.
+    # The header row identifies the "lts" column; non-LTS rows contain "-" in that column.
+    lts_version=$(curl -fsSL https://nodejs.org/dist/index.tab 2>/dev/null \
+        | awk 'NR==1 { for (i=1;i<=NF;i++) { if ($i=="lts") lts_col=i } next }
+               lts_col && $lts_col!="-" { gsub(/^v/,"",$1); split($1,v,"."); print v[1]; exit }' \
+        2>/dev/null || echo "")
+
+    # Fallback: grep/sed on index.json — compatible with all POSIX systems.
+    # LTS entries have "lts":"Codename"; non-LTS entries have "lts":false.
+    if [[ -z "${lts_version}" ]]; then
+        lts_version=$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null \
+            | grep -m 1 '"lts":"' \
+            | grep -o '"version":"v[0-9]*' \
+            | sed 's/.*v//' \
+            2>/dev/null || echo "")
+    fi
+
+    if [[ -z "${lts_version}" ]]; then
+        log_warn "Could not resolve Node.js LTS version from nodejs.org, defaulting to 22"
+        lts_version="22"
+    fi
+
+    log_info "Resolved LTS to Node.js ${lts_version}"
+    echo "${lts_version}"
 }
 
 install_node_binary() {
@@ -605,6 +630,15 @@ cleanup_caches() {
 }
 
 cleanup_caches
+
+# Persist this script so tests and postCreateCommand hooks can re-invoke it.
+# The devcontainer CLI removes /tmp/dev-container-features/ after installation,
+# so we copy to a stable path before that cleanup occurs.
+PERSIST_DIR="/usr/local/share/devcontainer-features/claude-code"
+mkdir -p "${PERSIST_DIR}"
+cp "$0" "${PERSIST_DIR}/install.sh"
+chmod +x "${PERSIST_DIR}/install.sh"
+log_debug "Install script persisted to ${PERSIST_DIR}/install.sh"
 
 log_info "Claude Code DevContainer Feature installation complete."
 log_info "  Claude Code: $(claude --version 2>/dev/null || echo 'unknown')"
