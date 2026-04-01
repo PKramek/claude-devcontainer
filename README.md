@@ -115,11 +115,12 @@ You must manually change it to public:
 ## Contributing
 
 1. Fork the repository
-2. Open in a devcontainer (`.devcontainer/devcontainer.json` is provided)
+2. Open in a devcontainer (`.devcontainer/devcontainer.json` runs `pre-commit install`
+   automatically), **or** run `pre-commit install` manually after cloning
 3. Make changes
 4. Run `pre-commit run --all-files` before committing
 5. Open a pull request
 
 ## License
 
-MIT
+Apache 2.0

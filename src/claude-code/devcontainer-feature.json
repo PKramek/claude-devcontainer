@@ -12,6 +12,7 @@
     "devcontainer"
   ],
   "documentationURL": "https://github.com/pkramek/claude-devcontainer#readme",
+  "license": "Apache-2.0",
   "licenseURL": "https://github.com/pkramek/claude-devcontainer/blob/main/LICENSE",
   "installsAfter": ["ghcr.io/devcontainers/features/node"],
   "options": {
