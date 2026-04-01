@@ -455,14 +455,15 @@ install_claude_code() {
         exit 1
     }
 
-    # Verify installation
-    if ! claude --version > /dev/null 2>&1; then
+    # Verify installation and capture version in one invocation
+    local installed_version
+    installed_version=$(claude --version 2>/dev/null) || {
         log_error "Claude Code installed but 'claude' not found on PATH."
         log_error "PATH=${PATH}"
         exit 1
-    fi
+    }
 
-    log_info "Claude Code $(claude --version) installed successfully."
+    log_info "Claude Code ${installed_version} installed successfully."
 }
 
 configure_custom_path
