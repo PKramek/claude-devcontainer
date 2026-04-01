@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2026 PKramek
 #
@@ -218,7 +218,7 @@ install_packages() {
             apk add --no-cache "${packages[@]}"
             ;;
         arch)
-            pacman -S --noconfirm --needed "${packages[@]}"
+            pacman -Sy --noconfirm --needed "${packages[@]}"
             ;;
         rhel)
             if command -v dnf >/dev/null 2>&1; then
@@ -262,6 +262,7 @@ ensure_base_dependencies() {
             ;;
         rhel)
             command -v xz >/dev/null 2>&1 || missing+=("xz")
+            command -v tar >/dev/null 2>&1 || missing+=("tar")
             ;;
     esac
 
@@ -527,14 +528,14 @@ setup_completions() {
         bash_comp_dir="/etc/bash_completion.d"
     fi
     if [[ -n "${bash_comp_dir}" ]]; then
-        claude completions bash >"${bash_comp_dir}/claude" 2>/dev/null || {
+        timeout 30 claude completions bash </dev/null >"${bash_comp_dir}/claude" 2>/dev/null || {
             log_warn "Failed to install bash completions."
         }
     fi
 
     # Zsh completions
     if [[ -d /usr/share/zsh/site-functions ]] || mkdir -p /usr/share/zsh/site-functions 2>/dev/null; then
-        claude completions zsh >/usr/share/zsh/site-functions/_claude 2>/dev/null || {
+        timeout 30 claude completions zsh </dev/null >/usr/share/zsh/site-functions/_claude 2>/dev/null || {
             log_warn "Failed to install zsh completions."
         }
     fi
@@ -548,7 +549,7 @@ setup_completions() {
         fi
     done
     if [[ -n "${fish_comp_dir}" ]]; then
-        claude completions fish >"${fish_comp_dir}/claude.fish" 2>/dev/null || {
+        timeout 30 claude completions fish </dev/null >"${fish_comp_dir}/claude.fish" 2>/dev/null || {
             log_warn "Failed to install fish completions."
         }
     fi
