@@ -6,7 +6,7 @@
 
 ## Summary
 
-Five changes grouped into one implementation cycle:
+Four changes grouped into one implementation cycle:
 
 1. Fix `log_info` and `log_debug` stdout contamination bug (breaks install on all images)
 2. Fix CI false positives (test steps pass despite feature install failures)
@@ -183,9 +183,26 @@ for bots/automated tooling. GitHub branch protection rulesets (Task 6) are the
 authoritative server-side enforcement layer.
 
 **Hook SHA pinning**: The current hooks use version tags (`v6.0.0`, `v3.13.0-1`, etc.).
-Tags are mutable — a compromised upstream could force-push a tag to malicious code. Run
-`pre-commit autoupdate --freeze` to convert all `rev` values to commit SHAs. This is the
-approach taken by security-conscious OSS projects and pre-commit's own documentation.
+Tags are mutable — a compromised upstream could force-push a tag to malicious code. The
+safe approach is to freeze the **current** pinned versions at their exact commit SHAs
+without pulling in any version upgrades.
+
+**Do NOT run `pre-commit autoupdate --freeze` without care** — `autoupdate` also updates to
+the latest available tag before freezing. This could silently pull in shfmt v4.x (which
+changed formatting defaults from v3.x), a prettier stable release, or other breaking
+changes that would reformat all files and require a large unrelated diff.
+
+Correct approach: resolve each current tag to its commit SHA using `git ls-remote`, then
+edit `.pre-commit-config.yaml` directly:
+
+```bash
+# Example: resolve current tag to SHA without updating
+git ls-remote https://github.com/pre-commit/pre-commit-hooks refs/tags/v6.0.0
+# Use the commit SHA (not the tag object SHA — use the ^{} dereferenced SHA if it exists)
+```
+
+Repeat for all five repos. After editing, run `pre-commit run --all-files` to verify no
+formatting regressions before committing.
 
 ### CI Changes
 
@@ -240,14 +257,17 @@ and filtering. Without it, the feature appears as unlicensed in registry listing
 
 The `licenseURL` URL itself does not change — the file content replacement is sufficient.
 
-**`src/claude-code/install.sh`**: Add an SPDX license identifier to the file header
-(industry standard for machine-parseable license detection by FOSSA, Snyk, GitHub):
+**`src/claude-code/install.sh`**: Add SPDX headers to the file after the shebang
+(industry standard for machine-parseable license detection by FOSSA, Snyk, GitHub).
+Include both the license identifier and the copyright text for full REUSE spec compliance:
 
 ```bash
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 PKramek
 ```
 
-Add this as the second line of the file (after the shebang).
+Add these as lines 2-3 of the file (after the shebang, before the existing `#` block).
+Comment lines are ignored by all POSIX shells — no compatibility risk.
 
 ### Affected Files
 
@@ -266,7 +286,7 @@ Add this as the second line of the file (after the shebang).
 2. License: replace `LICENSE`, create `NOTICE`, update `README.md` (license + Contributing
    section), add `"license"` field to `devcontainer-feature.json`
 3. Pre-commit config: shfmt `-w` explicit, `no-commit-to-branch` `develop`, SHA pinning
-   via `pre-commit autoupdate --freeze`
+   via `git ls-remote` tag resolution (NOT `autoupdate --freeze` which also upgrades versions)
 4. CI false positive grep checks in `test.yml` (tightened regex, inline comments,
    correct log path per job)
 
