@@ -17,7 +17,7 @@ Four changes grouped into one implementation cycle:
 
 ## 1. install.sh Bug: log_info Stdout Contamination
 
-### Root Cause
+### Root Cause (log_info Stdout)
 
 `log_info()` writes to **stdout**:
 
@@ -49,7 +49,7 @@ https://nodejs.org/dist/latest-v[claude-code feature] Resolved LTS to Node.js 24
 
 curl rejects this with `bad range in URL position 34` (the `[` bracket). Every image fails.
 
-### Fix
+### Fix (log_info Stdout)
 
 Change both `log_info` and `log_debug` to write to stderr, consistent with `log_warn` and
 `log_error`:
@@ -69,7 +69,7 @@ same class of issue applies and fixing it is required for defensive correctness.
 
 `log_warn` and `log_error` already write to stderr — no change needed.
 
-### Affected File
+### Affected File (log_info Stdout)
 
 - `src/claude-code/install.sh` lines 51 and 54-57
 
@@ -77,7 +77,7 @@ same class of issue applies and fixing it is required for defensive correctness.
 
 ## 2. CI False Positives: devcontainer features test Exit Code
 
-### Root Cause
+### Root Cause (CI False Positives)
 
 `devcontainer features test` (CLI v0.85.0) exits **0** even when the feature install fails
 inside Docker. The container build failure is printed to output but does not set a non-zero
@@ -93,7 +93,7 @@ Exit code 1
 [-] Failed to launch container
 ```
 
-### Fix
+### Fix (CI False Positives)
 
 This is a **heuristic workaround** for a devcontainer CLI bug (exits 0 on container build
 failure). The real fix would be a CLI patch. The workaround is tied to the CLI's current
@@ -133,7 +133,7 @@ if grep -qE "Exit code [1-9]|failed to install|Failed to launch" \
 fi
 ```
 
-### Affected File
+### Affected File (CI False Positives)
 
 - `.github/workflows/test.yml` — all three test job `run:` blocks (note: different log
   paths per job)
@@ -214,7 +214,7 @@ No changes to check mode. The CI lint job already runs:
 
 These remain unchanged. They are the enforcement layer.
 
-### Affected File
+### Affected File (Formatting Enforcement)
 
 - `.pre-commit-config.yaml`
 
