@@ -12,5 +12,7 @@ MCP_CONFIG="${HOME}/.claude/mcp_servers.json"
 check_file_exists "${MCP_CONFIG}"
 check_file_valid_json "${MCP_CONFIG}"
 check_file_owner "${MCP_CONFIG}" "$(whoami)"
+check_permissions "${HOME}/.claude" "700"
+check_permissions "${MCP_CONFIG}" "600"
 
 test_summary

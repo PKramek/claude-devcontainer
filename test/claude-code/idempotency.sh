@@ -12,8 +12,10 @@ CLAUDE_VERSION_BEFORE=$(claude --version 2>&1)
 NODE_VERSION_BEFORE=$(node --version 2>&1)
 
 echo "--- Idempotency: run install.sh a second time ---"
-# Re-run install as root to simulate a container rebuild
-sudo bash /usr/local/share/claude-code/install.sh 2>&1 || {
+# install.sh copies itself to this stable path at the end of installation
+# (see PERSIST_DIR block). The devcontainer CLI purges /tmp/ after installation,
+# so we cannot re-invoke from /tmp/dev-container-features/.
+sudo bash /usr/local/share/devcontainer-features/claude-code/install.sh 2>&1 || {
     fail "Second install.sh run failed"
     test_summary
 }

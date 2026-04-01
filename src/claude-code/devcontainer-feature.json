@@ -11,8 +11,8 @@
         "cli",
         "devcontainer"
     ],
-    "documentationURL": "https://github.com/PKramek/claude-code-devcontainer#readme",
-    "licenseURL": "https://github.com/PKramek/claude-code-devcontainer/blob/main/LICENSE",
+    "documentationURL": "https://github.com/pkramek/claude-code-devcontainer#readme",
+    "licenseURL": "https://github.com/pkramek/claude-code-devcontainer/blob/main/LICENSE",
     "installsAfter": [
         "ghcr.io/devcontainers/features/node"
     ],

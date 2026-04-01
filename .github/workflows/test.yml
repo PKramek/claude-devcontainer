@@ -48,6 +48,12 @@ jobs:
         run: |
           npx markdownlint-cli@0.48.0 "**/*.md" --ignore node_modules
 
+      - name: shfmt format check
+        run: |
+          curl -fsSL https://github.com/mvdan/sh/releases/download/v3.13.0/shfmt_v3.13.0_linux_amd64 \
+            -o /usr/local/bin/shfmt && chmod +x /usr/local/bin/shfmt
+          shfmt -d -i 4 -ci src/ test/
+
       - name: Check .sh files are executable
         run: |
           FAIL=0

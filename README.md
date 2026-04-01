@@ -84,7 +84,7 @@ Claude Code requires authentication. Options:
 
 ## Tested Images
 
-This feature is tested on 25+ base images across amd64 and arm64. See the
+This feature is tested on 27 amd64 + 4 arm64 base images. See the
 [test workflow](.github/workflows/test.yml) for the full matrix.
 
 ## Runtime Verification
