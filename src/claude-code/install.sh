@@ -506,6 +506,11 @@ install_claude_code() {
     }
 
     log_info "Claude Code ${installed_version} installed successfully."
+
+    # npm may create the binary with 777; enforce 755 for security.
+    local claude_bin
+    claude_bin=$(command -v claude)
+    chmod 755 "${claude_bin}"
 }
 
 configure_custom_path
