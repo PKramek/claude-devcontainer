@@ -96,9 +96,11 @@ jobs:
 
       - name: Annotate install warnings
         if: always()
+        continue-on-error: true
         run: |
-          grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/scenario-test-output.log 2>/dev/null \
-            | while IFS= read -r msg; do echo "::warning title=Install Warning::${msg}"; done || true
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/scenario-test-output.log 2>/dev/null || true)
+          for msg in "${warnings[@]}"; do echo "::warning title=Install Warning::${msg}"; done
+          [[ ${#warnings[@]} -eq 0 ]]
 
       - name: Upload logs on failure
         if: failure()
@@ -175,9 +177,11 @@ jobs:
 
       - name: Annotate install warnings
         if: always()
+        continue-on-error: true
         run: |
-          grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null \
-            | while IFS= read -r msg; do echo "::warning title=Install Warning::${msg}"; done || true
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null || true)
+          for msg in "${warnings[@]}"; do echo "::warning title=Install Warning::${msg}"; done
+          [[ ${#warnings[@]} -eq 0 ]]
 
       - name: Upload logs on failure
         if: failure()
@@ -231,9 +235,11 @@ jobs:
 
       - name: Annotate install warnings
         if: always()
+        continue-on-error: true
         run: |
-          grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null \
-            | while IFS= read -r msg; do echo "::warning title=Install Warning::${msg}"; done || true
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null || true)
+          for msg in "${warnings[@]}"; do echo "::warning title=Install Warning::${msg}"; done
+          [[ ${#warnings[@]} -eq 0 ]]
 
       - name: Upload logs on failure
         if: failure()

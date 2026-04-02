@@ -538,8 +538,9 @@ setup_completions() {
         }
     fi
 
-    # Zsh completions
-    if [[ -d /usr/share/zsh/site-functions ]] || mkdir -p /usr/share/zsh/site-functions 2>/dev/null; then
+    # Zsh completions — only if zsh is installed
+    if command -v zsh >/dev/null 2>&1; then
+        mkdir -p /usr/share/zsh/site-functions 2>/dev/null || true
         timeout 30 claude completions zsh </dev/null >/usr/share/zsh/site-functions/_claude 2>/dev/null || {
             log_warn "Failed to install zsh completions."
         }
