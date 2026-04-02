@@ -615,7 +615,7 @@ setup_mount_docs() {
     log_info "    \"source=\${localEnv:HOME}/.claude,target=${REMOTE_USER_HOME}/.claude,type=bind,consistency=cached,readonly\""
     log_info '  ]'
     log_info ""
-    log_warn "This exposes your API keys inside the container."
+    log_info "NOTE: This exposes your API keys inside the container."
     log_info "See README for security considerations."
     log_info "============================================================"
     log_info ""
