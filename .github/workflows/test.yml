@@ -97,7 +97,7 @@ jobs:
       - name: Annotate install warnings
         if: always()
         run: |
-          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/scenario-test-output.log 2>/dev/null | sort -u || true)
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/scenario-test-output.log 2>/dev/null | tr -d '\r' | sort -u || true)
           if [[ ${#warnings[@]} -gt 0 ]]; then
             echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
             for msg in "${warnings[@]}"; do
@@ -182,7 +182,7 @@ jobs:
       - name: Annotate install warnings
         if: always()
         run: |
-          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | sort -u || true)
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | tr -d '\r' | sort -u || true)
           if [[ ${#warnings[@]} -gt 0 ]]; then
             echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
             for msg in "${warnings[@]}"; do
@@ -244,7 +244,7 @@ jobs:
       - name: Annotate install warnings
         if: always()
         run: |
-          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | sort -u || true)
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | tr -d '\r' | sort -u || true)
           if [[ ${#warnings[@]} -gt 0 ]]; then
             echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
             for msg in "${warnings[@]}"; do
