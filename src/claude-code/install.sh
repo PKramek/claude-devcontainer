@@ -656,11 +656,18 @@ cleanup_caches
 # Persist this script so tests and postCreateCommand hooks can re-invoke it.
 # The devcontainer CLI removes /tmp/dev-container-features/ after installation,
 # so we copy to a stable path before that cleanup occurs.
+# Guard: skip copy when already running from the persisted path (idempotent re-run).
 PERSIST_DIR="/usr/local/share/devcontainer-features/claude-code"
 mkdir -p "${PERSIST_DIR}"
-cp "$0" "${PERSIST_DIR}/install.sh"
-chmod +x "${PERSIST_DIR}/install.sh"
-log_debug "Install script persisted to ${PERSIST_DIR}/install.sh"
+SCRIPT_REAL=$(readlink -f "$0" 2>/dev/null || echo "$0")
+PERSIST_REAL=$(readlink -f "${PERSIST_DIR}/install.sh" 2>/dev/null || echo "${PERSIST_DIR}/install.sh")
+if [[ "${SCRIPT_REAL}" != "${PERSIST_REAL}" ]]; then
+    cp "$0" "${PERSIST_DIR}/install.sh"
+    chmod +x "${PERSIST_DIR}/install.sh"
+    log_debug "Install script persisted to ${PERSIST_DIR}/install.sh"
+else
+    log_debug "Already running from ${PERSIST_DIR}/install.sh — skipping self-copy."
+fi
 
 log_info "Claude Code DevContainer Feature installation complete."
 log_info "  Claude Code: $(claude --version 2>/dev/null || echo 'unknown')"
