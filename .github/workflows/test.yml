@@ -98,7 +98,13 @@ jobs:
         if: always()
         run: |
           mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/scenario-test-output.log 2>/dev/null | sort -u || true)
-          for msg in "${warnings[@]}"; do echo "::warning title=Install Warning::${msg}"; done
+          if [[ ${#warnings[@]} -gt 0 ]]; then
+            echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
+            for msg in "${warnings[@]}"; do
+              echo "- ${msg}" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Install Warning::${msg}"
+            done
+          fi
 
       - name: Upload logs on failure
         if: failure()
@@ -177,7 +183,13 @@ jobs:
         if: always()
         run: |
           mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | sort -u || true)
-          for msg in "${warnings[@]}"; do echo "::warning title=Install Warning::${msg}"; done
+          if [[ ${#warnings[@]} -gt 0 ]]; then
+            echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
+            for msg in "${warnings[@]}"; do
+              echo "- ${msg}" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Install Warning::${msg}"
+            done
+          fi
 
       - name: Upload logs on failure
         if: failure()
@@ -233,7 +245,13 @@ jobs:
         if: always()
         run: |
           mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | sort -u || true)
-          for msg in "${warnings[@]}"; do echo "::warning title=Install Warning::${msg}"; done
+          if [[ ${#warnings[@]} -gt 0 ]]; then
+            echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
+            for msg in "${warnings[@]}"; do
+              echo "- ${msg}" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Install Warning::${msg}"
+            done
+          fi
 
       - name: Upload logs on failure
         if: failure()
