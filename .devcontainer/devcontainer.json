@@ -1,0 +1,19 @@
+{
+  "name": "Claude Code Feature Development",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+  "postCreateCommand": "npm install -g @devcontainers/cli && pre-commit install || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "timonwong.shellcheck",
+        "foxundermoon.shell-format",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

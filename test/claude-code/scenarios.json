@@ -1,0 +1,75 @@
+{
+  "default_options": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "completions_disabled": {
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+      "claude-code": {
+        "shellCompletions": false
+      }
+    }
+  },
+  "mcp_enabled": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "enableMcpServers": true
+      }
+    }
+  },
+  "custom_version": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "version": "0.2.57"
+      }
+    }
+  },
+  "node_preinstalled": {
+    "image": "mcr.microsoft.com/devcontainers/javascript-node",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "custom_install_path": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "installPath": "/opt/claude"
+      }
+    }
+  },
+  "mount_host_config": {
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+      "claude-code": {
+        "mountHostConfig": true
+      }
+    }
+  },
+  "alpine_specific": {
+    "image": "mcr.microsoft.com/devcontainers/base:alpine",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "idempotency": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "multi_feature_combo": {
+    "image": "mcr.microsoft.com/devcontainers/javascript-node",
+    "features": {
+      "ghcr.io/devcontainers/features/node:1": {
+        "version": "22"
+      },
+      "claude-code": {}
+    }
+  }
+}

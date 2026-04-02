@@ -1,0 +1,101 @@
+name: "Release"
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: "release-${{ github.repository }}"
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
+        with:
+          severity: warning
+
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli@0.85.0
+
+      - name: Smoke test (3 representative images)
+        run: |
+          for img in \
+            "mcr.microsoft.com/devcontainers/base:ubuntu" \
+            "mcr.microsoft.com/devcontainers/base:alpine" \
+            "mcr.microsoft.com/devcontainers/universal:2"; do
+            echo "--- Smoke testing: ${img} ---"
+            devcontainer features test \
+              --features claude-code \
+              --skip-scenarios \
+              --base-image "${img}" \
+              --project-folder .
+          done
+
+  version-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Verify version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          JSON_VERSION=$(python3 -c "
+          import json
+          with open('src/claude-code/devcontainer-feature.json') as f:
+              print(json.load(f)['version'])
+          ")
+          if [[ "${TAG_VERSION}" != "${JSON_VERSION}" ]]; then
+            echo "ERROR: Tag version (${TAG_VERSION}) does not match feature version (${JSON_VERSION})"
+            exit 1
+          fi
+          echo "Version match: ${TAG_VERSION}"
+
+  publish:
+    needs: [validate, version-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Publish feature
+        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1.4.3
+        with:
+          publish-features: "true"
+          base-path-to-features: "./src"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  post-publish:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: read
+    steps:
+      - name: Verify published feature
+        run: |
+          npm install -g @devcontainers/cli@0.85.0
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FEATURE_REF="ghcr.io/${{ github.repository }}/claude-code:${TAG_VERSION}"
+          echo "Verifying: ${FEATURE_REF}"
+          devcontainer features info manifest "${FEATURE_REF}" || {
+            echo "ERROR: Published feature not accessible at ${FEATURE_REF}"
+            exit 1
+          }
+          echo "Published feature verified successfully."

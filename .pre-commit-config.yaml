@@ -1,0 +1,40 @@
+# WARNING: Do not run `pre-commit autoupdate`. Hook revisions are pinned to
+# immutable commit SHAs for supply chain security. Update manually via git ls-remote.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+    hooks:
+      - id: check-json
+      - id: check-yaml
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: no-commit-to-branch
+        args: ["--branch", "main", "--branch", "develop"]
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: 99470f5e12208ff0fb17ab81c3c494f7620a1d8d # v0.11.0
+    hooks:
+      - id: shellcheck
+        args: ["--severity=warning"]
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: e26a818fd47b4f33cefa99035d1265b0849f4b47 # v3.13.0-1
+    hooks:
+      - id: shfmt
+        args: ["-w", "-ln", "bash", "-i", "4", "-ci"]
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: f12edd9c7be1c20cfa42420fd0e6df71e42b51ea # v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [json, yaml, markdown]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: e72a3ca1632f0b11a07d171449fe447a7ff6795e # v0.48.0
+    hooks:
+      - id: markdownlint
+        args: ["--fix"]
