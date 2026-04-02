@@ -42,7 +42,7 @@ is the composable alternative: bring your own base, add only what you need.
 | Option             | Type    | Default      | Description                                                                  |
 | ------------------ | ------- | ------------ | ---------------------------------------------------------------------------- |
 | `version`          | string  | `latest`     | Claude Code version (semver or `latest`). Pin this for teams.                |
-| `nodeVersion`      | string  | `lts`        | Node.js version to install if not already present (≥ 18 required).          |
+| `nodeVersion`      | string  | `lts`        | Node.js version to install if not already present (≥ 18 required).           |
 | `installPath`      | string  | `/usr/local` | Custom npm global prefix. Adds `<installPath>/bin` to PATH automatically.    |
 | `enableMcpServers` | boolean | `false`      | Create a starter MCP server config at `~/.claude/mcp_servers.json`.          |
 | `mountHostConfig`  | boolean | `false`      | Print a `devcontainer.json` mount snippet to wire up your host `~/.claude`.  |
