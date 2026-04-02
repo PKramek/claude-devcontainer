@@ -14,6 +14,7 @@ repos:
         args: ["--maxkb=500"]
       - id: no-commit-to-branch
         args: ["--branch", "main", "--branch", "develop"]
+        stages: [pre-commit]
 
   - repo: https://github.com/koalaman/shellcheck-precommit
     rev: 99470f5e12208ff0fb17ab81c3c494f7620a1d8d # v0.11.0
