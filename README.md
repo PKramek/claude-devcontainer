@@ -155,11 +155,46 @@ before a musl-compatible build is published. Check the CI badge before upgrading
 ## Contributing
 
 1. Fork and clone
-2. Open in the devcontainer (`.devcontainer/devcontainer.json` runs `pre-commit install`
-   automatically), **or** run `pre-commit install` manually after cloning
+2. Install the git hooks (one-time setup):
+
+   ```bash
+   pip install pre-commit
+   pre-commit install           # runs on git commit
+   pre-commit install --hook-type pre-push  # runs on git push
+   ```
+
+   If you open the repo in the devcontainer, this runs automatically.
+
 3. Changes live in `src/claude-code/install.sh` and `test/claude-code/`
-4. Run `pre-commit run --all-files` before committing
-5. Open a pull request against `develop`
+4. Open a pull request against `develop`
+
+### Pre-commit hooks
+
+The following checks run automatically on every `git commit` and `git push`:
+
+| Hook                  | What it checks                                |
+| --------------------- | --------------------------------------------- |
+| `shellcheck`          | Shell script correctness (warnings and above) |
+| `shfmt`               | Shell script formatting (`-i 4 -ci`)          |
+| `prettier`            | JSON, YAML, and Markdown formatting           |
+| `markdownlint`        | Markdown style rules                          |
+| `check-json`          | JSON syntax validity                          |
+| `check-yaml`          | YAML syntax validity                          |
+| `trailing-whitespace` | No trailing whitespace                        |
+| `detect-private-key`  | No accidentally committed secrets             |
+| `no-commit-to-branch` | Blocks direct commits to `main` and `develop` |
+
+**Running manually:**
+
+```bash
+pre-commit run --all-files        # check everything
+pre-commit run prettier           # check one hook
+pre-commit run --files src/claude-code/install.sh  # check one file
+```
+
+**If a hook fails:** fix the flagged issue and `git add` the changes before retrying. Prettier and
+shfmt auto-fix in place — just stage the result. ShellCheck and markdownlint report what to fix but
+won't rewrite your code.
 
 ## Publishing (Maintainers)
 
