@@ -140,7 +140,7 @@ jobs:
           - "mcr.microsoft.com/devcontainers/base:alpine"
           - "mcr.microsoft.com/devcontainers/universal:2"
           # Language-specific images
-          - "mcr.microsoft.com/devcontainers/python"
+          - "mcr.microsoft.com/devcontainers/python:3"
           - "mcr.microsoft.com/devcontainers/javascript-node"
           - "mcr.microsoft.com/devcontainers/typescript-node"
           - "mcr.microsoft.com/devcontainers/rust"
