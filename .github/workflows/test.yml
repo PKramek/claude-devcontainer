@@ -89,7 +89,7 @@ jobs:
           devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
           # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
           # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
-          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:" /tmp/scenario-test-output.log; then
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/scenario-test-output.log; then
             echo "ERROR: Test output contains failures."
             exit 1
           fi
@@ -162,7 +162,7 @@ jobs:
             --project-folder . 2>&1 | tee /tmp/test-output.log
           # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
           # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
-          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:" /tmp/test-output.log; then
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/test-output.log; then
             echo "ERROR: Test output contains failures."
             exit 1
           fi
@@ -209,7 +209,7 @@ jobs:
             --project-folder . 2>&1 | tee /tmp/test-output.log
           # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
           # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
-          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:" /tmp/test-output.log; then
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/test-output.log; then
             echo "ERROR: Test output contains failures."
             exit 1
           fi

@@ -106,7 +106,9 @@ check_permissions() {
         return
     fi
     local actual
-    actual=$(stat -c '%a' "${path}" 2>/dev/null || stat -f '%Lp' "${path}" 2>/dev/null)
+    # -L/-L: dereference symlinks so we check the target file, not the symlink itself
+    # (Linux symlinks always report 0777 via lstat; stat -L follows to the real file)
+    actual=$(stat -Lc '%a' "${path}" 2>/dev/null || stat -f '%Lp' "${path}" 2>/dev/null)
     if [[ "${actual}" == "${expected}" ]]; then
         pass "Permissions on ${path}: ${expected}"
     else
@@ -122,7 +124,7 @@ check_file_owner() {
         return
     fi
     local actual
-    actual=$(stat -c '%U' "${path}" 2>/dev/null || stat -f '%Su' "${path}" 2>/dev/null)
+    actual=$(stat -Lc '%U' "${path}" 2>/dev/null || stat -f '%Su' "${path}" 2>/dev/null)
     if [[ "${actual}" == "${expected_user}" ]]; then
         pass "Owner of ${path}: ${expected_user}"
     else
