@@ -94,6 +94,12 @@ jobs:
             exit 1
           fi
 
+      - name: Annotate install warnings
+        if: always()
+        run: |
+          grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/scenario-test-output.log 2>/dev/null \
+            | while IFS= read -r msg; do echo "::warning title=Install Warning::${msg}"; done || true
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -167,6 +173,12 @@ jobs:
             exit 1
           fi
 
+      - name: Annotate install warnings
+        if: always()
+        run: |
+          grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null \
+            | while IFS= read -r msg; do echo "::warning title=Install Warning::${msg}"; done || true
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -216,6 +228,12 @@ jobs:
             echo "ERROR: Test output contains failures."
             exit 1
           fi
+
+      - name: Annotate install warnings
+        if: always()
+        run: |
+          grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null \
+            | while IFS= read -r msg; do echo "::warning title=Install Warning::${msg}"; done || true
 
       - name: Upload logs on failure
         if: failure()
