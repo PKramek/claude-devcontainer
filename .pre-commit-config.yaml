@@ -16,11 +16,13 @@ repos:
         args: ["--branch", "main", "--branch", "develop"]
         stages: [pre-commit]
 
-  - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: 99470f5e12208ff0fb17ab81c3c494f7620a1d8d # v0.11.0
+  - repo: local
     hooks:
       - id: shellcheck
-        args: ["--severity=warning"]
+        name: ShellCheck
+        language: system
+        entry: shellcheck --severity=warning
+        types: [shell]
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: e26a818fd47b4f33cefa99035d1265b0849f4b47 # v3.13.0-1
