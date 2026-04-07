@@ -549,7 +549,10 @@ setup_completions() {
             sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
             sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
             sed -n '/[^ ]/,$p')
-        if [[ -n "${bash_comp_output}" ]]; then
+        local bash_comp_first=""
+        bash_comp_first=$(printf '%s' "${bash_comp_output}" | head -n1)
+        if [[ "${bash_comp_first}" == _* ]] || [[ "${bash_comp_first}" == "#"* ]] ||
+            [[ "${bash_comp_first}" == "if "* ]] || [[ "${bash_comp_first}" == "function "* ]]; then
             printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
         elif [[ -n "${bash_comp_raw}" ]]; then
             log_warn "Skipping bash completions: output does not look like a valid completion script."
@@ -570,7 +573,10 @@ setup_completions() {
             sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
             sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
             sed -n '/[^ ]/,$p')
-        if [[ -n "${zsh_comp_output}" ]]; then
+        local zsh_comp_first=""
+        zsh_comp_first=$(printf '%s' "${zsh_comp_output}" | head -n1)
+        if [[ "${zsh_comp_first}" == _* ]] || [[ "${zsh_comp_first}" == "#"* ]] ||
+            [[ "${zsh_comp_first}" == "if "* ]] || [[ "${zsh_comp_first}" == "function "* ]]; then
             printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
         elif [[ -n "${zsh_comp_raw}" ]]; then
             log_warn "Skipping zsh completions: output does not look like a valid completion script."
@@ -597,7 +603,9 @@ setup_completions() {
             sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
             sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
             sed -n '/[^ ]/,$p')
-        if [[ -n "${fish_comp_output}" ]]; then
+        local fish_comp_first=""
+        fish_comp_first=$(printf '%s' "${fish_comp_output}" | head -n1)
+        if [[ "${fish_comp_first}" == "complete"* ]] || [[ "${fish_comp_first}" == "#"* ]]; then
             printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
         elif [[ -n "${fish_comp_raw}" ]]; then
             log_warn "Skipping fish completions: output does not look like a valid completion script."
