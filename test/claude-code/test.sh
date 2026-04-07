@@ -142,6 +142,26 @@ check_file_valid_json() {
     fi
 }
 
+check_completion_file_contents() {
+    local file="$1"
+    shift
+    local prefixes=("$@")
+    if [[ ! -f "${file}" ]]; then
+        fail "Completion file missing: ${file}"
+        return
+    fi
+    local first_line
+    first_line=$(head -n1 "${file}")
+    local prefix
+    for prefix in "${prefixes[@]}"; do
+        if [[ "${first_line}" == "${prefix}"* ]]; then
+            pass "Completion file content valid (prefix '${prefix}'): ${file}"
+            return
+        fi
+    done
+    fail "Completion file has unexpected first line ('${first_line}'): ${file}"
+}
+
 check_path_clean() {
     local cache_dir="$1"
     if [[ ! -d "${cache_dir}" ]]; then

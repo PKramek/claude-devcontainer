@@ -539,6 +539,8 @@ setup_completions() {
             printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
         elif [[ -n "${bash_comp_output}" ]]; then
             log_warn "Skipping bash completions: output does not look like a valid completion script."
+        else
+            log_debug "Skipping bash completions: no output from claude completions bash."
         fi
     fi
 
@@ -551,6 +553,8 @@ setup_completions() {
             printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
         elif [[ -n "${zsh_comp_output}" ]]; then
             log_warn "Skipping zsh completions: output does not look like a valid completion script."
+        else
+            log_debug "Skipping zsh completions: no output from claude completions zsh."
         fi
     fi
 
@@ -569,10 +573,12 @@ setup_completions() {
             printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
         elif [[ -n "${fish_comp_output}" ]]; then
             log_warn "Skipping fish completions: output does not look like a valid completion script."
+        else
+            log_debug "Skipping fish completions: no output from claude completions fish."
         fi
     fi
 
-    log_info "Shell completions installed."
+    log_info "Shell completions setup complete."
 }
 
 setup_completions
