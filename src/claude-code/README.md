@@ -68,15 +68,23 @@ Claude Code requires authentication. Three options:
    }
    ```
 
-3. **Mount host config:** Use the `mountHostConfig` option to get the mount
-   snippet, then add it to `mounts` in your `devcontainer.json`. Adjust the
-   `target` path to match your container user's home directory.
+3. **Mount host config:** Use the `mountHostConfig` option to get the two-mount
+   snippet, then add both entries to `mounts` in your `devcontainer.json`. Two
+   mounts are required: `~/.claude/` holds session data and MCP config;
+   `~/.claude.json` holds global settings and onboarding state. Mounting only
+   the directory causes the onboarding wizard to re-run on every container
+   start. Adjust both `target` paths to match your container user's home
+   directory.
 
 ## Notes
 
 - Node.js >= 18 is required. If not present, this feature installs the current
   LTS release automatically.
-- Shell completions are installed for bash, zsh, and fish if those directories
-  exist in the container.
+- Shell completions for bash, zsh, and fish are attempted at build time.
+  Because `claude completions` requires authentication, completions are only
+  installed if credentials are available during the build (e.g., via
+  `ANTHROPIC_API_KEY`). To install completions after logging in, run
+  `claude completions bash > /usr/share/bash-completion/completions/claude`
+  (adjust path and shell name as needed).
 - The `enableMcpServers` option creates a starter config with secure permissions
   (`chmod 600`) owned by the container user.

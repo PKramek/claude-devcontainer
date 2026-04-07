@@ -525,6 +525,10 @@ setup_completions() {
 
     log_info "Installing shell completions..."
 
+    # Escape character for portable ANSI stripping (works with GNU sed and busybox sed).
+    local esc
+    esc=$(printf '\033')
+
     # Bash completions
     local bash_comp_dir=""
     if [[ -d /usr/share/bash-completion/completions ]]; then
@@ -533,17 +537,56 @@ setup_completions() {
         bash_comp_dir="/etc/bash_completion.d"
     fi
     if [[ -n "${bash_comp_dir}" ]]; then
-        timeout 30 claude completions bash </dev/null >"${bash_comp_dir}/claude" 2>/dev/null || {
-            log_warn "Failed to install bash completions."
-        }
+        local bash_comp_raw=""
+        local bash_comp_output=""
+        bash_comp_raw=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
+        # Strip \r (CRLF), ANSI codes, and known Node.js warning lines, then keep
+        # everything from the first non-blank line onwards.  This is more robust than
+        # anchoring on a specific first character, since the completion format varies
+        # across Claude Code versions and some wrap the script in an `if` block.
+        bash_comp_output=$(printf '%s' "${bash_comp_raw}" |
+            tr -d '\r' |
+            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
+            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
+            sed -n '/[^ ]/,$p')
+        local bash_comp_first=""
+        bash_comp_first=$(printf '%s' "${bash_comp_output}" | head -n1)
+        if [[ "${bash_comp_first}" == _* ]] || [[ "${bash_comp_first}" == "#"* ]] ||
+            [[ "${bash_comp_first}" == "if "* ]] || [[ "${bash_comp_first}" == "function "* ]]; then
+            printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
+        elif printf '%s' "${bash_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
+            log_debug "Skipping bash completions: authentication required (expected during build)."
+        elif [[ -n "${bash_comp_raw}" ]]; then
+            log_warn "Skipping bash completions: output does not look like a valid completion script."
+        else
+            log_debug "Skipping bash completions: no output from claude completions bash."
+        fi
     fi
 
     # Zsh completions — only if zsh is installed
     if command -v zsh >/dev/null 2>&1; then
         mkdir -p /usr/share/zsh/site-functions 2>/dev/null || true
-        timeout 30 claude completions zsh </dev/null >/usr/share/zsh/site-functions/_claude 2>/dev/null || {
-            log_warn "Failed to install zsh completions."
-        }
+        local zsh_comp_raw=""
+        local zsh_comp_output=""
+        zsh_comp_raw=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
+        # Strip \r, ANSI codes, and Node.js warning preamble; keep from first non-blank line.
+        zsh_comp_output=$(printf '%s' "${zsh_comp_raw}" |
+            tr -d '\r' |
+            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
+            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
+            sed -n '/[^ ]/,$p')
+        local zsh_comp_first=""
+        zsh_comp_first=$(printf '%s' "${zsh_comp_output}" | head -n1)
+        if [[ "${zsh_comp_first}" == _* ]] || [[ "${zsh_comp_first}" == "#"* ]] ||
+            [[ "${zsh_comp_first}" == "if "* ]] || [[ "${zsh_comp_first}" == "function "* ]]; then
+            printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
+        elif printf '%s' "${zsh_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
+            log_debug "Skipping zsh completions: authentication required (expected during build)."
+        elif [[ -n "${zsh_comp_raw}" ]]; then
+            log_warn "Skipping zsh completions: output does not look like a valid completion script."
+        else
+            log_debug "Skipping zsh completions: no output from claude completions zsh."
+        fi
     fi
 
     # Fish completions
@@ -555,12 +598,29 @@ setup_completions() {
         fi
     done
     if [[ -n "${fish_comp_dir}" ]]; then
-        timeout 30 claude completions fish </dev/null >"${fish_comp_dir}/claude.fish" 2>/dev/null || {
-            log_warn "Failed to install fish completions."
-        }
+        local fish_comp_raw=""
+        local fish_comp_output=""
+        fish_comp_raw=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
+        # Strip \r, ANSI codes, and Node.js warning preamble; keep from first non-blank line.
+        fish_comp_output=$(printf '%s' "${fish_comp_raw}" |
+            tr -d '\r' |
+            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
+            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
+            sed -n '/[^ ]/,$p')
+        local fish_comp_first=""
+        fish_comp_first=$(printf '%s' "${fish_comp_output}" | head -n1)
+        if [[ "${fish_comp_first}" == "complete"* ]] || [[ "${fish_comp_first}" == "#"* ]]; then
+            printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
+        elif printf '%s' "${fish_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
+            log_debug "Skipping fish completions: authentication required (expected during build)."
+        elif [[ -n "${fish_comp_raw}" ]]; then
+            log_warn "Skipping fish completions: output does not look like a valid completion script."
+        else
+            log_debug "Skipping fish completions: no output from claude completions fish."
+        fi
     fi
 
-    log_info "Shell completions installed."
+    log_info "Shell completions setup complete."
 }
 
 setup_completions
@@ -608,12 +668,21 @@ setup_mount_docs() {
     log_info "============================================================"
     log_info "HOST CONFIG MOUNTING"
     log_info "============================================================"
-    log_info "To mount your host Claude config, add this to your"
-    log_info "devcontainer.json:"
+    log_info "Claude Code stores state in two separate locations:"
+    log_info "  ~/.claude/      session data, MCP config, project memory"
+    log_info "  ~/.claude.json  global settings, onboarding state, theme"
+    log_info ""
+    log_info "Both must be mounted to persist preferences across rebuilds."
+    log_info "Add both entries to your devcontainer.json:"
     log_info ""
     log_info '  "mounts": ['
-    log_info "    \"source=\${localEnv:HOME}/.claude,target=${REMOTE_USER_HOME}/.claude,type=bind,consistency=cached,readonly\""
+    log_info "    \"source=\${localEnv:HOME}/.claude,target=${REMOTE_USER_HOME}/.claude,type=bind,consistency=cached,readonly\","
+    log_info "    \"source=\${localEnv:HOME}/.claude.json,target=${REMOTE_USER_HOME}/.claude.json,type=bind,consistency=cached,readonly\""
     log_info '  ]'
+    log_info ""
+    log_info "NOTE: ~/.claude.json must exist on the host before the container"
+    log_info "starts — Docker creates it as a directory if absent. Run 'claude'"
+    log_info "on the host at least once, or: echo '{}' > ~/.claude.json"
     log_info ""
     log_info "NOTE: This exposes your API keys inside the container."
     log_info "See README for security considerations."
