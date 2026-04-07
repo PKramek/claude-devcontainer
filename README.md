@@ -154,55 +154,10 @@ before a musl-compatible build is published. Check the CI badge before upgrading
 
 ## Contributing
 
-1. Fork and clone
-2. Install the git hooks (one-time setup):
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, branching model, pre-commit hooks,
+and the release process.
 
-   ```bash
-   pip install pre-commit
-   pre-commit install           # runs on git commit
-   pre-commit install --hook-type pre-push  # runs on git push
-   ```
-
-   If you open the repo in the devcontainer, this runs automatically.
-
-3. Changes live in `src/claude-code/install.sh` and `test/claude-code/`
-4. Open a pull request against `develop`
-
-### Pre-commit hooks
-
-The following checks run automatically on every `git commit` and `git push`:
-
-| Hook                  | What it checks                                |
-| --------------------- | --------------------------------------------- |
-| `shellcheck`          | Shell script correctness (warnings and above) |
-| `shfmt`               | Shell script formatting (`-i 4 -ci`)          |
-| `prettier`            | JSON, YAML, and Markdown formatting           |
-| `markdownlint`        | Markdown style rules                          |
-| `check-json`          | JSON syntax validity                          |
-| `check-yaml`          | YAML syntax validity                          |
-| `trailing-whitespace` | No trailing whitespace                        |
-| `detect-private-key`  | No accidentally committed secrets             |
-| `no-commit-to-branch` | Blocks direct commits to `main` and `develop` |
-
-**Running manually:**
-
-```bash
-pre-commit run --all-files        # check everything
-pre-commit run prettier           # check one hook
-pre-commit run --files src/claude-code/install.sh  # check one file
-```
-
-**If a hook fails:** fix the flagged issue and `git add` the changes before retrying. Prettier and
-shfmt auto-fix in place — just stage the result. ShellCheck and markdownlint report what to fix but
-won't rewrite your code.
-
-## Publishing (Maintainers)
-
-After the first release tag push, the GHCR package is created as **private**. To make it public:
-
-1. Go to the repository's **Packages** tab
-2. Click the `claude-code` package → **Package settings**
-3. Under **Danger Zone**, change visibility to **Public**
+Short version: fork, clone, install pre-commit hooks, open a PR against `develop`.
 
 ## License
 
