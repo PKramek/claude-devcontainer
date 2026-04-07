@@ -104,24 +104,37 @@ browser window. Works in VS Code's integrated terminal with no extra configurati
 }
 ```
 
-**3. Mount host `~/.claude`.** Share your full host config — API keys, session tokens, preferences
-— directly into the container:
+**3. Mount host `~/.claude` and `~/.claude.json`.** Share your full host config — API keys,
+session tokens, preferences — directly into the container.
+
+Claude Code splits its persistent state across two locations:
+
+- `~/.claude/` — session transcripts, project memory, MCP server configuration
+- `~/.claude.json` — global settings, onboarding state, theme, account metadata
+
+Both must be mounted. Mounting only the directory leaves `~/.claude.json` absent, causing the
+onboarding wizard to re-run and all preferences to reset on every container start.
 
 ```json
 {
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached,readonly"
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached,readonly",
+    "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached,readonly"
   ]
 }
 ```
 
 > ⚠️ **Security:** This exposes your API keys inside the container. Only do this in trusted
-> environments. Adjust the `target` path to match your container user's home directory (`/root`,
+> environments. Adjust both `target` paths to match your container user's home directory (`/root`,
 > `/home/node`, etc.). The `readonly` flag prevents Claude Code from writing settings or session
 > data back to the host — if you need bidirectional sync, remove it and accept the risk.
 >
-> Set `mountHostConfig: true` in the feature options to get this snippet printed at build time with
-> your actual home directory path pre-filled.
+> **Note:** `~/.claude.json` must exist on the host before the container starts — Docker creates it
+> as a directory if absent. Run `claude` on the host at least once, or bootstrap it with:
+> `echo '{}' > ~/.claude.json`
+>
+> Set `mountHostConfig: true` in the feature options to get this two-mount snippet printed at build
+> time with your actual home directory path pre-filled.
 
 ## Tested Base Images
 

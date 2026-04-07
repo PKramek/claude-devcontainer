@@ -68,9 +68,13 @@ Claude Code requires authentication. Three options:
    }
    ```
 
-3. **Mount host config:** Use the `mountHostConfig` option to get the mount
-   snippet, then add it to `mounts` in your `devcontainer.json`. Adjust the
-   `target` path to match your container user's home directory.
+3. **Mount host config:** Use the `mountHostConfig` option to get the two-mount
+   snippet, then add both entries to `mounts` in your `devcontainer.json`. Two
+   mounts are required: `~/.claude/` holds session data and MCP config;
+   `~/.claude.json` holds global settings and onboarding state. Mounting only
+   the directory causes the onboarding wizard to re-run on every container
+   start. Adjust both `target` paths to match your container user's home
+   directory.
 
 ## Notes
 

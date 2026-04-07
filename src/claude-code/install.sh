@@ -533,17 +533,25 @@ setup_completions() {
         bash_comp_dir="/etc/bash_completion.d"
     fi
     if [[ -n "${bash_comp_dir}" ]]; then
-        timeout 30 claude completions bash </dev/null >"${bash_comp_dir}/claude" 2>/dev/null || {
-            log_warn "Failed to install bash completions."
-        }
+        local bash_comp_output=""
+        bash_comp_output=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
+        if [[ "${bash_comp_output}" == "_"* ]] || [[ "${bash_comp_output}" == "#"* ]]; then
+            printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
+        elif [[ -n "${bash_comp_output}" ]]; then
+            log_warn "Skipping bash completions: output does not look like a valid completion script."
+        fi
     fi
 
     # Zsh completions — only if zsh is installed
     if command -v zsh >/dev/null 2>&1; then
         mkdir -p /usr/share/zsh/site-functions 2>/dev/null || true
-        timeout 30 claude completions zsh </dev/null >/usr/share/zsh/site-functions/_claude 2>/dev/null || {
-            log_warn "Failed to install zsh completions."
-        }
+        local zsh_comp_output=""
+        zsh_comp_output=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
+        if [[ "${zsh_comp_output}" == "#compdef"* ]]; then
+            printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
+        elif [[ -n "${zsh_comp_output}" ]]; then
+            log_warn "Skipping zsh completions: output does not look like a valid completion script."
+        fi
     fi
 
     # Fish completions
@@ -555,9 +563,13 @@ setup_completions() {
         fi
     done
     if [[ -n "${fish_comp_dir}" ]]; then
-        timeout 30 claude completions fish </dev/null >"${fish_comp_dir}/claude.fish" 2>/dev/null || {
-            log_warn "Failed to install fish completions."
-        }
+        local fish_comp_output=""
+        fish_comp_output=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
+        if [[ "${fish_comp_output}" == "complete"* ]]; then
+            printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
+        elif [[ -n "${fish_comp_output}" ]]; then
+            log_warn "Skipping fish completions: output does not look like a valid completion script."
+        fi
     fi
 
     log_info "Shell completions installed."
@@ -608,12 +620,21 @@ setup_mount_docs() {
     log_info "============================================================"
     log_info "HOST CONFIG MOUNTING"
     log_info "============================================================"
-    log_info "To mount your host Claude config, add this to your"
-    log_info "devcontainer.json:"
+    log_info "Claude Code stores state in two separate locations:"
+    log_info "  ~/.claude/      session data, MCP config, project memory"
+    log_info "  ~/.claude.json  global settings, onboarding state, theme"
+    log_info ""
+    log_info "Both must be mounted to persist preferences across rebuilds."
+    log_info "Add both entries to your devcontainer.json:"
     log_info ""
     log_info '  "mounts": ['
-    log_info "    \"source=\${localEnv:HOME}/.claude,target=${REMOTE_USER_HOME}/.claude,type=bind,consistency=cached,readonly\""
+    log_info "    \"source=\${localEnv:HOME}/.claude,target=${REMOTE_USER_HOME}/.claude,type=bind,consistency=cached,readonly\","
+    log_info "    \"source=\${localEnv:HOME}/.claude.json,target=${REMOTE_USER_HOME}/.claude.json,type=bind,consistency=cached,readonly\""
     log_info '  ]'
+    log_info ""
+    log_info "NOTE: ~/.claude.json must exist on the host before the container"
+    log_info "starts — Docker creates it as a directory if absent. Run 'claude'"
+    log_info "on the host at least once, or: echo '{}' > ~/.claude.json"
     log_info ""
     log_info "NOTE: This exposes your API keys inside the container."
     log_info "See README for security considerations."
