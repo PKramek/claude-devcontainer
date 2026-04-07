@@ -525,6 +525,10 @@ setup_completions() {
 
     log_info "Installing shell completions..."
 
+    # Escape character for portable ANSI stripping (works with GNU sed and busybox sed).
+    local esc
+    esc=$(printf '\033')
+
     # Bash completions
     local bash_comp_dir=""
     if [[ -d /usr/share/bash-completion/completions ]]; then
@@ -533,8 +537,12 @@ setup_completions() {
         bash_comp_dir="/etc/bash_completion.d"
     fi
     if [[ -n "${bash_comp_dir}" ]]; then
+        local bash_comp_raw=""
         local bash_comp_output=""
-        bash_comp_output=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
+        bash_comp_raw=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
+        # Strip ANSI escape codes and leading blank lines so that preamble noise
+        # does not cause valid completion scripts to be rejected.
+        bash_comp_output=$(printf '%s' "${bash_comp_raw}" | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | sed '/./,$!d')
         if [[ "${bash_comp_output}" == "_"* ]] || [[ "${bash_comp_output}" == "#"* ]]; then
             printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
         elif [[ -n "${bash_comp_output}" ]]; then
@@ -547,8 +555,12 @@ setup_completions() {
     # Zsh completions — only if zsh is installed
     if command -v zsh >/dev/null 2>&1; then
         mkdir -p /usr/share/zsh/site-functions 2>/dev/null || true
+        local zsh_comp_raw=""
         local zsh_comp_output=""
-        zsh_comp_output=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
+        zsh_comp_raw=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
+        # Strip ANSI escape codes and leading blank lines so that preamble noise
+        # does not cause valid completion scripts to be rejected.
+        zsh_comp_output=$(printf '%s' "${zsh_comp_raw}" | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | sed '/./,$!d')
         if [[ "${zsh_comp_output}" == "#compdef"* ]]; then
             printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
         elif [[ -n "${zsh_comp_output}" ]]; then
@@ -567,8 +579,12 @@ setup_completions() {
         fi
     done
     if [[ -n "${fish_comp_dir}" ]]; then
+        local fish_comp_raw=""
         local fish_comp_output=""
-        fish_comp_output=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
+        fish_comp_raw=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
+        # Strip ANSI escape codes and leading blank lines so that preamble noise
+        # does not cause valid completion scripts to be rejected.
+        fish_comp_output=$(printf '%s' "${fish_comp_raw}" | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | sed '/./,$!d')
         if [[ "${fish_comp_output}" == "complete"* ]]; then
             printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
         elif [[ -n "${fish_comp_output}" ]]; then
