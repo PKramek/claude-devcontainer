@@ -1,0 +1,48 @@
+name: "Advance main"
+
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+    branches: [develop]
+
+concurrency:
+  group: advance-main
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  advance:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Fast-forward main to develop
+        # Requires RepositoryRole admin bypass actor on the protect-main ruleset.
+        # Without it, GITHUB_TOKEN cannot update main directly and this step fails.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          DEVELOP_SHA=$(gh api repos/"$REPO"/git/ref/heads/develop --jq '.object.sha')
+          # force=false ensures this is always a true fast-forward; rejects if main has diverged
+          gh api repos/"$REPO"/git/refs/heads/main \
+            --method PATCH \
+            --field sha="$DEVELOP_SHA" \
+            --field force=false
+
+      - name: Verify main matches develop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          MAIN_SHA=$(gh api repos/"$REPO"/git/ref/heads/main --jq '.object.sha')
+          DEVELOP_SHA=$(gh api repos/"$REPO"/git/ref/heads/develop --jq '.object.sha')
+          if [[ "$MAIN_SHA" != "$DEVELOP_SHA" ]]; then
+            echo "ERROR: main ($MAIN_SHA) does not match develop ($DEVELOP_SHA) after advance"
+            exit 1
+          fi
+          echo "main and develop are in sync at $MAIN_SHA"

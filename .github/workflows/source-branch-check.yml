@@ -1,0 +1,24 @@
+name: "Source branch check"
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  check-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Verify PR comes from develop or hotfix/*
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" != "develop" && ! "$HEAD_REF" =~ ^hotfix/ ]]; then
+            echo "ERROR: PRs to main must come from 'develop' or 'hotfix/*' branches."
+            echo "Source branch: $HEAD_REF"
+            exit 1
+          fi
+          echo "Source branch check passed: $HEAD_REF"
