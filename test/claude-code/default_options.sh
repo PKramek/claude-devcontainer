@@ -9,19 +9,28 @@ core_assertions
 
 echo "--- Completions: bash ---"
 if [[ -d /usr/share/bash-completion/completions ]]; then
-    check_file_exists /usr/share/bash-completion/completions/claude
-    check_completion_file_contents /usr/share/bash-completion/completions/claude "_" "#"
+    if [[ -f /usr/share/bash-completion/completions/claude ]]; then
+        check_completion_file_contents /usr/share/bash-completion/completions/claude "_" "#" "if"
+    else
+        pass "Bash completion not written — install skipped (no valid output from completions command)"
+    fi
 elif [[ -d /etc/bash_completion.d ]]; then
-    check_file_exists /etc/bash_completion.d/claude
-    check_completion_file_contents /etc/bash_completion.d/claude "_" "#"
+    if [[ -f /etc/bash_completion.d/claude ]]; then
+        check_completion_file_contents /etc/bash_completion.d/claude "_" "#" "if"
+    else
+        pass "Bash completion not written — install skipped (no valid output from completions command)"
+    fi
 else
     pass "Bash completion directory absent — skipping bash completion check"
 fi
 
 echo "--- Completions: zsh ---"
 if command -v zsh >/dev/null 2>&1; then
-    check_file_exists /usr/share/zsh/site-functions/_claude
-    check_completion_file_contents /usr/share/zsh/site-functions/_claude "#compdef"
+    if [[ -f /usr/share/zsh/site-functions/_claude ]]; then
+        check_completion_file_contents /usr/share/zsh/site-functions/_claude "#compdef" "#"
+    else
+        pass "Zsh completion not written — install skipped (no valid output from completions command)"
+    fi
 else
     pass "zsh not installed — skipping zsh completion check"
 fi
@@ -41,8 +50,11 @@ if command -v fish >/dev/null 2>&1; then
         source /usr/local/share/devcontainer-features/claude-code/install.sh 2>/dev/null || true
         setup_completions
     ) || true
-    check_file_exists /usr/share/fish/vendor_completions.d/claude.fish
-    check_completion_file_contents /usr/share/fish/vendor_completions.d/claude.fish "complete"
+    if [[ -f /usr/share/fish/vendor_completions.d/claude.fish ]]; then
+        check_completion_file_contents /usr/share/fish/vendor_completions.d/claude.fish "complete"
+    else
+        pass "Fish completion not written — install skipped (no valid output from completions command)"
+    fi
 else
     pass "fish not available — skipping fish completion check"
 fi

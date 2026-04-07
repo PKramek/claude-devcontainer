@@ -540,11 +540,15 @@ setup_completions() {
         local bash_comp_raw=""
         local bash_comp_output=""
         bash_comp_raw=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
-        # Strip ANSI codes then extract from the first valid completion line onwards.
-        # This discards any Node.js warnings or other preamble that precede the script.
+        # Strip \r (CRLF), ANSI codes, and known Node.js warning lines, then keep
+        # everything from the first non-blank line onwards.  This is more robust than
+        # anchoring on a specific first character, since the completion format varies
+        # across Claude Code versions and some wrap the script in an `if` block.
         bash_comp_output=$(printf '%s' "${bash_comp_raw}" |
+            tr -d '\r' |
             sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
-            sed -n '/^[_#]/,$p')
+            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
+            sed -n '/[^ ]/,$p')
         if [[ -n "${bash_comp_output}" ]]; then
             printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
         elif [[ -n "${bash_comp_raw}" ]]; then
@@ -560,10 +564,12 @@ setup_completions() {
         local zsh_comp_raw=""
         local zsh_comp_output=""
         zsh_comp_raw=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
-        # Strip ANSI codes then extract from the first valid completion line onwards.
+        # Strip \r, ANSI codes, and Node.js warning preamble; keep from first non-blank line.
         zsh_comp_output=$(printf '%s' "${zsh_comp_raw}" |
+            tr -d '\r' |
             sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
-            sed -n '/^#compdef/,$p')
+            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
+            sed -n '/[^ ]/,$p')
         if [[ -n "${zsh_comp_output}" ]]; then
             printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
         elif [[ -n "${zsh_comp_raw}" ]]; then
@@ -585,10 +591,12 @@ setup_completions() {
         local fish_comp_raw=""
         local fish_comp_output=""
         fish_comp_raw=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
-        # Strip ANSI codes then extract from the first valid completion line onwards.
+        # Strip \r, ANSI codes, and Node.js warning preamble; keep from first non-blank line.
         fish_comp_output=$(printf '%s' "${fish_comp_raw}" |
+            tr -d '\r' |
             sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
-            sed -n '/^complete/,$p')
+            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
+            sed -n '/[^ ]/,$p')
         if [[ -n "${fish_comp_output}" ]]; then
             printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
         elif [[ -n "${fish_comp_raw}" ]]; then
