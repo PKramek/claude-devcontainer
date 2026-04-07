@@ -554,6 +554,8 @@ setup_completions() {
         if [[ "${bash_comp_first}" == _* ]] || [[ "${bash_comp_first}" == "#"* ]] ||
             [[ "${bash_comp_first}" == "if "* ]] || [[ "${bash_comp_first}" == "function "* ]]; then
             printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
+        elif printf '%s' "${bash_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
+            log_debug "Skipping bash completions: authentication required (expected during build)."
         elif [[ -n "${bash_comp_raw}" ]]; then
             log_warn "Skipping bash completions: output does not look like a valid completion script."
         else
@@ -578,6 +580,8 @@ setup_completions() {
         if [[ "${zsh_comp_first}" == _* ]] || [[ "${zsh_comp_first}" == "#"* ]] ||
             [[ "${zsh_comp_first}" == "if "* ]] || [[ "${zsh_comp_first}" == "function "* ]]; then
             printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
+        elif printf '%s' "${zsh_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
+            log_debug "Skipping zsh completions: authentication required (expected during build)."
         elif [[ -n "${zsh_comp_raw}" ]]; then
             log_warn "Skipping zsh completions: output does not look like a valid completion script."
         else
@@ -607,6 +611,8 @@ setup_completions() {
         fish_comp_first=$(printf '%s' "${fish_comp_output}" | head -n1)
         if [[ "${fish_comp_first}" == "complete"* ]] || [[ "${fish_comp_first}" == "#"* ]]; then
             printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
+        elif printf '%s' "${fish_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
+            log_debug "Skipping fish completions: authentication required (expected during build)."
         elif [[ -n "${fish_comp_raw}" ]]; then
             log_warn "Skipping fish completions: output does not look like a valid completion script."
         else

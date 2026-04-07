@@ -80,7 +80,11 @@ Claude Code requires authentication. Three options:
 
 - Node.js >= 18 is required. If not present, this feature installs the current
   LTS release automatically.
-- Shell completions are installed for bash, zsh, and fish if those directories
-  exist in the container.
+- Shell completions for bash, zsh, and fish are attempted at build time.
+  Because `claude completions` requires authentication, completions are only
+  installed if credentials are available during the build (e.g., via
+  `ANTHROPIC_API_KEY`). To install completions after logging in, run
+  `claude completions bash > /usr/share/bash-completion/completions/claude`
+  (adjust path and shell name as needed).
 - The `enableMcpServers` option creates a starter config with secure permissions
   (`chmod 600`) owned by the container user.
