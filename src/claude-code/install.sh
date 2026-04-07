@@ -540,12 +540,14 @@ setup_completions() {
         local bash_comp_raw=""
         local bash_comp_output=""
         bash_comp_raw=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
-        # Strip ANSI escape codes and leading blank lines so that preamble noise
-        # does not cause valid completion scripts to be rejected.
-        bash_comp_output=$(printf '%s' "${bash_comp_raw}" | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | sed '/./,$!d')
-        if [[ "${bash_comp_output}" == "_"* ]] || [[ "${bash_comp_output}" == "#"* ]]; then
+        # Strip ANSI codes then extract from the first valid completion line onwards.
+        # This discards any Node.js warnings or other preamble that precede the script.
+        bash_comp_output=$(printf '%s' "${bash_comp_raw}" |
+            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
+            sed -n '/^[_#]/,$p')
+        if [[ -n "${bash_comp_output}" ]]; then
             printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
-        elif [[ -n "${bash_comp_output}" ]]; then
+        elif [[ -n "${bash_comp_raw}" ]]; then
             log_warn "Skipping bash completions: output does not look like a valid completion script."
         else
             log_debug "Skipping bash completions: no output from claude completions bash."
@@ -558,12 +560,13 @@ setup_completions() {
         local zsh_comp_raw=""
         local zsh_comp_output=""
         zsh_comp_raw=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
-        # Strip ANSI escape codes and leading blank lines so that preamble noise
-        # does not cause valid completion scripts to be rejected.
-        zsh_comp_output=$(printf '%s' "${zsh_comp_raw}" | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | sed '/./,$!d')
-        if [[ "${zsh_comp_output}" == "#compdef"* ]]; then
+        # Strip ANSI codes then extract from the first valid completion line onwards.
+        zsh_comp_output=$(printf '%s' "${zsh_comp_raw}" |
+            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
+            sed -n '/^#compdef/,$p')
+        if [[ -n "${zsh_comp_output}" ]]; then
             printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
-        elif [[ -n "${zsh_comp_output}" ]]; then
+        elif [[ -n "${zsh_comp_raw}" ]]; then
             log_warn "Skipping zsh completions: output does not look like a valid completion script."
         else
             log_debug "Skipping zsh completions: no output from claude completions zsh."
@@ -582,12 +585,13 @@ setup_completions() {
         local fish_comp_raw=""
         local fish_comp_output=""
         fish_comp_raw=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
-        # Strip ANSI escape codes and leading blank lines so that preamble noise
-        # does not cause valid completion scripts to be rejected.
-        fish_comp_output=$(printf '%s' "${fish_comp_raw}" | sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" | sed '/./,$!d')
-        if [[ "${fish_comp_output}" == "complete"* ]]; then
+        # Strip ANSI codes then extract from the first valid completion line onwards.
+        fish_comp_output=$(printf '%s' "${fish_comp_raw}" |
+            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
+            sed -n '/^complete/,$p')
+        if [[ -n "${fish_comp_output}" ]]; then
             printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
-        elif [[ -n "${fish_comp_output}" ]]; then
+        elif [[ -n "${fish_comp_raw}" ]]; then
             log_warn "Skipping fish completions: output does not look like a valid completion script."
         else
             log_debug "Skipping fish completions: no output from claude completions fish."
