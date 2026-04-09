@@ -150,7 +150,7 @@ check_file_contains() {
         fail "Cannot check contents: ${path} does not exist"
         return
     fi
-    if grep -qF "${needle}" "${path}"; then
+    if grep -qF -- "${needle}" "${path}"; then
         pass "File contains '${needle}': ${path}"
     else
         fail "File does NOT contain '${needle}': ${path}"
@@ -165,7 +165,7 @@ check_file_not_contains() {
         pass "File absent (trivially does not contain '${needle}'): ${path}"
         return
     fi
-    if grep -qF "${needle}" "${path}"; then
+    if grep -qF -- "${needle}" "${path}"; then
         fail "File unexpectedly contains '${needle}': ${path}"
     else
         pass "File does not contain '${needle}': ${path}"
