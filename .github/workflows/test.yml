@@ -76,6 +76,7 @@ jobs:
   # The 17 scenarios are split into 3 groups by estimated build cost.
   # Each group dynamically filters scenarios.json to run only its subset.
   test-scenarios:
+    name: test-scenarios (${{ matrix.group.name }})
     needs: lint
     runs-on: ubuntu-latest
     timeout-minutes: 30
