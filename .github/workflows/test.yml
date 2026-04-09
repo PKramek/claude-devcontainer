@@ -260,7 +260,6 @@ jobs:
   # arm64 tests via QEMU emulation on standard ubuntu-latest runners
   test-arm64:
     needs: lint
-    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 60 # QEMU emulation is significantly slower than native
     permissions:
