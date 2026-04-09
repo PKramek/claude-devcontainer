@@ -72,13 +72,42 @@ jobs:
           done < <(find . -name '*.sh' -not -path './.git/*' -print0)
           exit "$FAIL"
 
-  # Run all per-scenario tests (options-specific assertions)
+  # Run per-scenario tests in parallel groups for faster CI.
+  # The 17 scenarios are split into 3 groups by estimated build cost.
+  # Each group dynamically filters scenarios.json to run only its subset.
   test-scenarios:
     needs: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 90 # 17 scenarios building containers takes time
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - name: fast
+            scenarios: >-
+              default_options
+              completions_pipeline
+              mcp_enabled
+              negative_validation
+              security_permissions
+              completions_disabled
+          - name: medium
+            scenarios: >-
+              custom_version
+              custom_install_path
+              custom_node_version
+              install_path_with_completions
+              mount_host_config
+              node_preinstalled
+          - name: slow
+            scenarios: >-
+              idempotency
+              upgrade_version
+              multi_feature_combo
+              alpine_specific
+              fedora_default
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -88,11 +117,24 @@ jobs:
       - name: Install devcontainer CLI
         run: npm install -g @devcontainers/cli@0.85.0
 
-      - name: Run all scenarios
+      - name: Generate group scenarios.json
+        env:
+          SCENARIOS: ${{ matrix.group.scenarios }}
+          GROUP_NAME: ${{ matrix.group.name }}
+        run: |
+          FULL="test/claude-code/scenarios.json"
+          # Build a jq filter that selects only the named scenarios
+          JQ_FILTER=$(echo "${SCENARIOS}" | tr -s ' ' '\n' | sed 's/.*/"&"/' | paste -sd, | sed 's/^/[/;s/$/]/')
+          jq --argjson keys "${JQ_FILTER}" 'with_entries(select(.key as $k | $keys | index($k)))' "${FULL}" > /tmp/group-scenarios.json
+          echo "::group::scenarios.json for group '${GROUP_NAME}'"
+          cat /tmp/group-scenarios.json
+          echo "::endgroup::"
+          cp /tmp/group-scenarios.json "${FULL}"
+
+      - name: Run scenarios (${{ matrix.group.name }})
         run: |
           devcontainer features test --project-folder . 2>&1 | tee /tmp/scenario-test-output.log
           # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
-          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
           if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/scenario-test-output.log; then
             echo "ERROR: Test output contains failures."
             exit 1
@@ -119,7 +161,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: logs-scenarios
+          name: logs-scenarios-${{ matrix.group.name }}
           path: /tmp/scenario-test-output.log
           retention-days: 7
 
