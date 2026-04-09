@@ -142,6 +142,93 @@ check_file_valid_json() {
     fi
 }
 
+# Assert a file contains a given string
+check_file_contains() {
+    local path="$1"
+    local needle="$2"
+    if [[ ! -f "${path}" ]]; then
+        fail "Cannot check contents: ${path} does not exist"
+        return
+    fi
+    if grep -qF "${needle}" "${path}"; then
+        pass "File contains '${needle}': ${path}"
+    else
+        fail "File does NOT contain '${needle}': ${path}"
+    fi
+}
+
+# Assert a file does NOT contain a given string
+check_file_not_contains() {
+    local path="$1"
+    local needle="$2"
+    if [[ ! -f "${path}" ]]; then
+        pass "File absent (trivially does not contain '${needle}'): ${path}"
+        return
+    fi
+    if grep -qF "${needle}" "${path}"; then
+        fail "File unexpectedly contains '${needle}': ${path}"
+    else
+        pass "File does not contain '${needle}': ${path}"
+    fi
+}
+
+# Assert no world-writable files exist under a given path
+check_no_world_writable() {
+    local scan_path="$1"
+    if [[ ! -e "${scan_path}" ]]; then
+        fail "Cannot scan: ${scan_path} does not exist"
+        return
+    fi
+    local world_writable
+    world_writable=$(find "${scan_path}" -perm -o+w -type f 2>/dev/null || true)
+    if [[ -z "${world_writable}" ]]; then
+        pass "No world-writable files under: ${scan_path}"
+    else
+        fail "World-writable files found under ${scan_path}: ${world_writable}"
+    fi
+}
+
+# Full-file integrity check for completion files.
+# Validates: non-empty, no CRLF, no ANSI codes, no Node.js warnings, no auth errors.
+check_completion_file_integrity() {
+    local file="$1"
+    if [[ ! -f "${file}" ]]; then
+        fail "Completion file missing: ${file}"
+        return
+    fi
+    if [[ ! -s "${file}" ]]; then
+        fail "Completion file is empty: ${file}"
+        return
+    fi
+    pass "Completion file is non-empty: ${file}"
+
+    if grep -qP '\r' "${file}" 2>/dev/null || grep -q $'\r' "${file}"; then
+        fail "Completion file contains CRLF: ${file}"
+    else
+        pass "Completion file has no CRLF: ${file}"
+    fi
+
+    local esc
+    esc=$(printf '\033')
+    if grep -q "${esc}" "${file}"; then
+        fail "Completion file contains ANSI escape sequences: ${file}"
+    else
+        pass "Completion file has no ANSI codes: ${file}"
+    fi
+
+    if grep -q '^(node:[0-9]' "${file}"; then
+        fail "Completion file contains Node.js warning lines: ${file}"
+    else
+        pass "Completion file has no Node.js warnings: ${file}"
+    fi
+
+    if grep -qi -e 'not logged in' -e 'Please run /login' "${file}"; then
+        fail "Completion file contains auth error text: ${file}"
+    else
+        pass "Completion file has no auth error text: ${file}"
+    fi
+}
+
 check_completion_file_contents() {
     local file="$1"
     shift
@@ -155,7 +242,9 @@ check_completion_file_contents() {
     local prefix
     for prefix in "${prefixes[@]}"; do
         if [[ "${first_line}" == "${prefix}"* ]]; then
-            pass "Completion file content valid (prefix '${prefix}'): ${file}"
+            pass "Completion file first line valid (prefix '${prefix}'): ${file}"
+            # Also run full integrity check on the entire file
+            check_completion_file_integrity "${file}"
             return
         fi
     done
@@ -214,6 +303,7 @@ test_summary() {
     if [[ "${TESTS_FAILED}" -gt 0 ]]; then
         exit 1
     fi
+    exit 0
 }
 
 # When executed directly (not sourced), run core assertions.

@@ -5,35 +5,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/test.sh"
 
 echo "=== Scenario: idempotency ==="
+
+echo "--- First run assertions ---"
 core_assertions
 
-echo "--- Idempotency: record state before second install ---"
-CLAUDE_VERSION_BEFORE=$(claude --version 2>&1)
-NODE_VERSION_BEFORE=$(node --version 2>&1)
+ORIGINAL_CLAUDE_VERSION=$(claude --version 2>/dev/null | head -n1)
+ORIGINAL_NODE_VERSION=$(node --version 2>/dev/null)
 
-echo "--- Idempotency: run install.sh a second time ---"
-# install.sh copies itself to this stable path at the end of installation
-# (see PERSIST_DIR block). The devcontainer CLI purges /tmp/ after installation,
-# so we cannot re-invoke from /tmp/dev-container-features/.
-sudo bash /usr/local/share/devcontainer-features/claude-code/install.sh 2>&1 || {
-    fail "Second install.sh run failed"
-    test_summary
-}
+echo "--- Second run (idempotent re-install) ---"
+INSTALL_SCRIPT="/usr/local/share/devcontainer-features/claude-code/install.sh"
+check_file_exists "${INSTALL_SCRIPT}"
 
-echo "--- Idempotency: verify state unchanged ---"
-CLAUDE_VERSION_AFTER=$(claude --version 2>&1)
-NODE_VERSION_AFTER=$(node --version 2>&1)
+# Pass the same default options that the first run used
+sudo VERSION=latest NODEVERSION=lts INSTALLPATH=/usr/local \
+    ENABLEMCPSERVERS=false MOUNTHOSTCONFIG=false SHELLCOMPLETIONS=true \
+    bash "${INSTALL_SCRIPT}" 2>&1
 
-if [[ "${CLAUDE_VERSION_BEFORE}" == "${CLAUDE_VERSION_AFTER}" ]]; then
-    pass "Claude Code version unchanged after re-install: ${CLAUDE_VERSION_AFTER}"
+echo "--- Post re-run assertions ---"
+core_assertions
+
+RERUN_CLAUDE_VERSION=$(claude --version 2>/dev/null | head -n1)
+RERUN_NODE_VERSION=$(node --version 2>/dev/null)
+
+if [[ "${ORIGINAL_CLAUDE_VERSION}" == "${RERUN_CLAUDE_VERSION}" ]]; then
+    pass "Claude version unchanged after re-run: ${RERUN_CLAUDE_VERSION}"
 else
-    fail "Claude Code version changed: ${CLAUDE_VERSION_BEFORE} -> ${CLAUDE_VERSION_AFTER}"
+    fail "Claude version changed: ${ORIGINAL_CLAUDE_VERSION} -> ${RERUN_CLAUDE_VERSION}"
 fi
 
-if [[ "${NODE_VERSION_BEFORE}" == "${NODE_VERSION_AFTER}" ]]; then
-    pass "Node.js version unchanged after re-install: ${NODE_VERSION_AFTER}"
+if [[ "${ORIGINAL_NODE_VERSION}" == "${RERUN_NODE_VERSION}" ]]; then
+    pass "Node version unchanged after re-run: ${RERUN_NODE_VERSION}"
 else
-    fail "Node.js version changed: ${NODE_VERSION_BEFORE} -> ${NODE_VERSION_AFTER}"
+    fail "Node version changed: ${ORIGINAL_NODE_VERSION} -> ${RERUN_NODE_VERSION}"
 fi
+
+echo "--- Persisted script still exists ---"
+check_file_exists "${INSTALL_SCRIPT}"
 
 test_summary
