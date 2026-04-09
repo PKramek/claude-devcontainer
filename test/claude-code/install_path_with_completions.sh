@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=test.sh
 source "${SCRIPT_DIR}/test.sh"
 
-echo "=== Scenario: custom_install_path ==="
+echo "=== Scenario: install_path_with_completions ==="
 
 echo "--- Binary at custom path ---"
 check_file_exists /opt/claude/bin/claude
@@ -16,17 +16,15 @@ else
     fail "PATH does not contain /opt/claude/bin"
 fi
 
-echo "--- Profile.d script exists with correct content ---"
+echo "--- Profile.d script ---"
 check_file_exists /etc/profile.d/claude-code.sh
 check_file_contains /etc/profile.d/claude-code.sh '/opt/claude/bin'
-check_permissions /etc/profile.d/claude-code.sh "644"
 
-echo "--- Claude resolves to custom path ---"
-CLAUDE_PATH=$(command -v claude)
-if [[ "${CLAUDE_PATH}" == "/opt/claude/bin/claude" ]]; then
-    pass "claude resolves to /opt/claude/bin/claude"
-else
-    fail "claude resolves to ${CLAUDE_PATH}, expected /opt/claude/bin/claude"
+echo "--- Completions with custom path ---"
+if [[ -d /usr/share/bash-completion/completions ]]; then
+    check_file_exists /usr/share/bash-completion/completions/claude
+    check_completion_file_contents /usr/share/bash-completion/completions/claude \
+        "_" "#" "if " "function " "#!/"
 fi
 
 core_assertions

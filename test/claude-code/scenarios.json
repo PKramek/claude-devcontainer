@@ -13,6 +13,12 @@
       }
     }
   },
+  "completions_pipeline": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {}
+    }
+  },
   "mcp_enabled": {
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "features": {
@@ -70,6 +76,51 @@
         "version": "22"
       },
       "claude-code": {}
+    }
+  },
+  "negative_validation": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "custom_node_version": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "nodeVersion": "22"
+      }
+    }
+  },
+  "fedora_default": {
+    "image": "fedora:40",
+    "features": {
+      "claude-code": {}
+    }
+  },
+  "upgrade_version": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "version": "0.2.57"
+      }
+    }
+  },
+  "install_path_with_completions": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "installPath": "/opt/claude",
+        "shellCompletions": true
+      }
+    }
+  },
+  "security_permissions": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "claude-code": {
+        "enableMcpServers": true
+      }
     }
   }
 }

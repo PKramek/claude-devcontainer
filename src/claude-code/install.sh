@@ -29,33 +29,20 @@ if [ -z "${BASH_VERSION:-}" ]; then
 fi
 # --- From here on, bash is guaranteed ---
 
-set -Eeuo pipefail
-umask 0022
-
-FEATURE_LOG_PREFIX="[claude-code feature]"
-
-# Debug mode
-if [[ "${DEBUG:-false}" == "true" ]]; then
-    unset ANTHROPIC_API_KEY CLAUDE_API_KEY 2>/dev/null || true
-    set -x
-fi
-
-# Traps
-trap 'echo "${FEATURE_LOG_PREFIX} ERROR: Failed at line ${LINENO}. Exit code: $?" >&2' ERR
-trap cleanup EXIT INT TERM
-
-TEMP_DIR=""
-cleanup() {
-    [[ -n "${TEMP_DIR}" ]] && rm -rf "${TEMP_DIR}" 2>/dev/null || true
-}
-
 # --- Logging ---
-log_info() { echo "${FEATURE_LOG_PREFIX} $*" >&2; }
-log_warn() { echo "${FEATURE_LOG_PREFIX} WARNING: $*" >&2; }
-log_error() { echo "${FEATURE_LOG_PREFIX} ERROR: $*" >&2; }
+log_info() { echo "${FEATURE_LOG_PREFIX:-[claude-code feature]} $*" >&2; }
+log_warn() { echo "${FEATURE_LOG_PREFIX:-[claude-code feature]} WARNING: $*" >&2; }
+log_error() { echo "${FEATURE_LOG_PREFIX:-[claude-code feature]} ERROR: $*" >&2; }
 log_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then
-        echo "${FEATURE_LOG_PREFIX} DEBUG: $*" >&2
+        echo "${FEATURE_LOG_PREFIX:-[claude-code feature]} DEBUG: $*" >&2
+    fi
+}
+
+# --- Cleanup ---
+cleanup() {
+    if [[ -n "${TEMP_DIR:-}" ]]; then
+        rm -rf "${TEMP_DIR}" 2>/dev/null || true
     fi
 }
 
@@ -90,26 +77,6 @@ validate_node_version() {
     fi
 }
 
-# --- Parse Options ---
-VERSION="${VERSION:-latest}"
-NODE_VERSION="${NODEVERSION:-lts}"
-INSTALL_PATH="${INSTALLPATH:-/usr/local}"
-ENABLE_MCP_SERVERS="${ENABLEMCPSERVERS:-false}"
-MOUNT_HOST_CONFIG="${MOUNTHOSTCONFIG:-false}"
-SHELL_COMPLETIONS="${SHELLCOMPLETIONS:-true}"
-
-validate_version "${VERSION}"
-validate_install_path "${INSTALL_PATH}"
-validate_node_version "${NODE_VERSION}"
-
-log_info "Starting installation..."
-log_info "  Claude Code version: ${VERSION}"
-log_info "  Node.js version: ${NODE_VERSION}"
-log_info "  Install path: ${INSTALL_PATH}"
-log_info "  MCP servers: ${ENABLE_MCP_SERVERS}"
-log_info "  Mount host config: ${MOUNT_HOST_CONFIG}"
-log_info "  Shell completions: ${SHELL_COMPLETIONS}"
-
 # --- Remote User Detection ---
 detect_remote_user() {
     if [[ -n "${_REMOTE_USER:-}" ]]; then
@@ -118,7 +85,7 @@ detect_remote_user() {
         echo "${_CONTAINER_USER}"
     else
         local user
-        user=$(getent passwd | awk -F: '$3 >= 1000 && $7 !~ /nologin|false/ { print $1; exit }')
+        user=$(getent passwd | awk -F: '$3 >= 1000 && $3 <= 60000 && $7 !~ /nologin|false/ { print $1; exit }')
         if [[ -n "${user}" ]]; then
             echo "${user}"
         else
@@ -136,13 +103,10 @@ detect_user_home() {
     fi
 }
 
-REMOTE_USER=$(detect_remote_user)
-REMOTE_USER_HOME=$(detect_user_home "${REMOTE_USER}")
-if [[ -z "${REMOTE_USER_HOME}" ]]; then
-    log_warn "Could not detect home directory for user '${REMOTE_USER}'. Defaulting to /root."
-    REMOTE_USER_HOME="/root"
-fi
-log_info "  Remote user: ${REMOTE_USER} (home: ${REMOTE_USER_HOME})"
+# IMPORTANT: detect_os sources /etc/os-release which sets global variables including
+# VERSION. This is safe ONLY because detect_os is called via command substitution
+# (OS_FAMILY=$(detect_os)) which runs in a subshell. Do NOT refactor to call
+# detect_os directly — it would clobber the script's VERSION variable.
 
 # --- OS Detection ---
 detect_os() {
@@ -197,11 +161,6 @@ detect_arch() {
     esac
 }
 
-OS_FAMILY=$(detect_os)
-ARCH=$(detect_arch)
-log_info "  Detected OS family: ${OS_FAMILY}"
-log_info "  Detected architecture: ${ARCH}"
-
 # --- Dependency Installation ---
 install_packages() {
     local packages=("$@")
@@ -218,7 +177,7 @@ install_packages() {
             apk add --no-cache "${packages[@]}"
             ;;
         arch)
-            pacman -Sy --noconfirm --needed "${packages[@]}"
+            pacman -Syu --noconfirm --needed "${packages[@]}"
             ;;
         rhel)
             if command -v dnf >/dev/null 2>&1; then
@@ -272,11 +231,7 @@ ensure_base_dependencies() {
     fi
 }
 
-ensure_base_dependencies
-
 # --- Node.js Installation ---
-NODE_MIN_VERSION=18
-
 get_node_major_version() {
     local version_string
     version_string=$(node --version 2>/dev/null || echo "")
@@ -340,7 +295,7 @@ install_node_binary() {
     local url="https://nodejs.org/dist/latest-v${version}.x/"
 
     local shasums
-    shasums=$(curl -fsSL "${url}SHASUMS256.txt") || {
+    shasums=$(curl -fsSL --connect-timeout 30 --max-time 300 "${url}SHASUMS256.txt") || {
         log_error "Failed to download Node.js SHASUMS256.txt from ${url}"
         exit 1
     }
@@ -358,7 +313,7 @@ install_node_binary() {
 
     log_debug "Downloading ${tarball_name} (SHA256: ${expected_sha})"
 
-    curl -fsSL "${url}${tarball_name}" -o "${TEMP_DIR}/${tarball_name}" || {
+    curl -fsSL --connect-timeout 30 --max-time 300 "${url}${tarball_name}" -o "${TEMP_DIR}/${tarball_name}" || {
         log_error "Failed to download Node.js from ${url}${tarball_name}"
         exit 1
     }
@@ -440,8 +395,6 @@ ensure_node() {
     log_info "Node.js $(node --version) installed successfully."
 }
 
-ensure_node
-
 # --- PATH Configuration ---
 configure_custom_path() {
     if [[ "${INSTALL_PATH}" == "/usr/local" ]]; then
@@ -499,7 +452,7 @@ install_claude_code() {
 
     # Verify installation and capture version in one invocation
     local installed_version
-    installed_version=$(claude --version 2>/dev/null) || {
+    installed_version=$(claude --version 2>/dev/null | head -n1) || {
         log_error "Claude Code installed but 'claude' not found on PATH."
         log_error "PATH=${PATH}"
         exit 1
@@ -513,10 +466,8 @@ install_claude_code() {
     chmod 755 "${claude_bin}"
 }
 
-configure_custom_path
-install_claude_code
-
 # --- Shell Completions ---
+
 setup_completions() {
     if [[ "${SHELL_COMPLETIONS}" != "true" ]]; then
         log_debug "Shell completions disabled."
@@ -525,9 +476,15 @@ setup_completions() {
 
     log_info "Installing shell completions..."
 
-    # Escape character for portable ANSI stripping (works with GNU sed and busybox sed).
-    local esc
-    esc=$(printf '\033')
+    # The completions directory is shipped alongside install.sh in the feature package.
+    local feature_dir
+    feature_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local comp_src="${feature_dir}/completions"
+
+    if [[ ! -d "${comp_src}" ]]; then
+        log_warn "Completions directory not found at ${comp_src}. Skipping."
+        return 0
+    fi
 
     # Bash completions
     local bash_comp_dir=""
@@ -536,94 +493,42 @@ setup_completions() {
     elif [[ -d /etc/bash_completion.d ]]; then
         bash_comp_dir="/etc/bash_completion.d"
     fi
-    if [[ -n "${bash_comp_dir}" ]]; then
-        local bash_comp_raw=""
-        local bash_comp_output=""
-        bash_comp_raw=$(timeout 30 claude completions bash </dev/null 2>/dev/null) || true
-        # Strip \r (CRLF), ANSI codes, and known Node.js warning lines, then keep
-        # everything from the first non-blank line onwards.  This is more robust than
-        # anchoring on a specific first character, since the completion format varies
-        # across Claude Code versions and some wrap the script in an `if` block.
-        bash_comp_output=$(printf '%s' "${bash_comp_raw}" |
-            tr -d '\r' |
-            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
-            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
-            sed -n '/[^ ]/,$p')
-        local bash_comp_first=""
-        bash_comp_first=$(printf '%s' "${bash_comp_output}" | head -n1)
-        if [[ "${bash_comp_first}" == _* ]] || [[ "${bash_comp_first}" == "#"* ]] ||
-            [[ "${bash_comp_first}" == "if "* ]] || [[ "${bash_comp_first}" == "function "* ]]; then
-            printf '%s\n' "${bash_comp_output}" >"${bash_comp_dir}/claude"
-        elif printf '%s' "${bash_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
-            log_debug "Skipping bash completions: authentication required (expected during build)."
-        elif [[ -n "${bash_comp_raw}" ]]; then
-            log_warn "Skipping bash completions: output does not look like a valid completion script."
-        else
-            log_debug "Skipping bash completions: no output from claude completions bash."
-        fi
+    if [[ -n "${bash_comp_dir}" ]] && [[ -f "${comp_src}/claude.bash" ]]; then
+        cp "${comp_src}/claude.bash" "${bash_comp_dir}/claude"
+        chmod 644 "${bash_comp_dir}/claude"
+        log_info "Bash completions installed."
     fi
 
     # Zsh completions — only if zsh is installed
-    if command -v zsh >/dev/null 2>&1; then
+    if command -v zsh >/dev/null 2>&1 && [[ -f "${comp_src}/_claude.zsh" ]]; then
         mkdir -p /usr/share/zsh/site-functions 2>/dev/null || true
-        local zsh_comp_raw=""
-        local zsh_comp_output=""
-        zsh_comp_raw=$(timeout 30 claude completions zsh </dev/null 2>/dev/null) || true
-        # Strip \r, ANSI codes, and Node.js warning preamble; keep from first non-blank line.
-        zsh_comp_output=$(printf '%s' "${zsh_comp_raw}" |
-            tr -d '\r' |
-            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
-            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
-            sed -n '/[^ ]/,$p')
-        local zsh_comp_first=""
-        zsh_comp_first=$(printf '%s' "${zsh_comp_output}" | head -n1)
-        if [[ "${zsh_comp_first}" == _* ]] || [[ "${zsh_comp_first}" == "#"* ]] ||
-            [[ "${zsh_comp_first}" == "if "* ]] || [[ "${zsh_comp_first}" == "function "* ]]; then
-            printf '%s\n' "${zsh_comp_output}" >/usr/share/zsh/site-functions/_claude
-        elif printf '%s' "${zsh_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
-            log_debug "Skipping zsh completions: authentication required (expected during build)."
-        elif [[ -n "${zsh_comp_raw}" ]]; then
-            log_warn "Skipping zsh completions: output does not look like a valid completion script."
-        else
-            log_debug "Skipping zsh completions: no output from claude completions zsh."
-        fi
+        cp "${comp_src}/_claude.zsh" /usr/share/zsh/site-functions/_claude
+        chmod 644 /usr/share/zsh/site-functions/_claude
+        log_info "Zsh completions installed."
     fi
 
     # Fish completions
-    local fish_comp_dir=""
-    for dir in /usr/share/fish/vendor_completions.d /usr/share/fish/completions; do
-        if [[ -d "${dir}" ]]; then
-            fish_comp_dir="${dir}"
-            break
+    if [[ -f "${comp_src}/claude.fish" ]]; then
+        local fish_comp_dir=""
+        for dir in /usr/share/fish/vendor_completions.d /usr/share/fish/completions; do
+            if [[ -d "${dir}" ]]; then
+                fish_comp_dir="${dir}"
+                break
+            fi
+        done
+        if [[ -z "${fish_comp_dir}" ]] && command -v fish >/dev/null 2>&1; then
+            fish_comp_dir="/usr/share/fish/vendor_completions.d"
+            mkdir -p "${fish_comp_dir}"
         fi
-    done
-    if [[ -n "${fish_comp_dir}" ]]; then
-        local fish_comp_raw=""
-        local fish_comp_output=""
-        fish_comp_raw=$(timeout 30 claude completions fish </dev/null 2>/dev/null) || true
-        # Strip \r, ANSI codes, and Node.js warning preamble; keep from first non-blank line.
-        fish_comp_output=$(printf '%s' "${fish_comp_raw}" |
-            tr -d '\r' |
-            sed "s/${esc}\[[0-9;]*[a-zA-Z]//g" |
-            sed '/^(node:[0-9]/d; /^Use .* --trace-warnings/d' |
-            sed -n '/[^ ]/,$p')
-        local fish_comp_first=""
-        fish_comp_first=$(printf '%s' "${fish_comp_output}" | head -n1)
-        if [[ "${fish_comp_first}" == "complete"* ]] || [[ "${fish_comp_first}" == "#"* ]]; then
-            printf '%s\n' "${fish_comp_output}" >"${fish_comp_dir}/claude.fish"
-        elif printf '%s' "${fish_comp_output}" | grep -qi -e 'not logged in' -e '/login'; then
-            log_debug "Skipping fish completions: authentication required (expected during build)."
-        elif [[ -n "${fish_comp_raw}" ]]; then
-            log_warn "Skipping fish completions: output does not look like a valid completion script."
-        else
-            log_debug "Skipping fish completions: no output from claude completions fish."
+        if [[ -n "${fish_comp_dir}" ]]; then
+            cp "${comp_src}/claude.fish" "${fish_comp_dir}/claude.fish"
+            chmod 644 "${fish_comp_dir}/claude.fish"
+            log_info "Fish completions installed."
         fi
     fi
 
-    log_info "Shell completions setup complete."
+    log_info "Shell completions installed."
 }
-
-setup_completions
 
 # --- MCP Server Configuration ---
 setup_mcp_servers() {
@@ -655,8 +560,6 @@ MCPEOF
     chown "${REMOTE_USER}:$(id -gn "${REMOTE_USER}")" "${mcp_config}"
     log_info "MCP config created at ${mcp_config} (mode 600)"
 }
-
-setup_mcp_servers
 
 # --- Host Config Mount Documentation ---
 setup_mount_docs() {
@@ -690,8 +593,6 @@ setup_mount_docs() {
     log_info ""
 }
 
-setup_mount_docs
-
 # --- Cache Cleanup ---
 cleanup_caches() {
     log_info "Cleaning up package manager caches..."
@@ -721,26 +622,106 @@ cleanup_caches() {
     log_info "Cache cleanup complete."
 }
 
-cleanup_caches
+# --- Main ---
+main() {
+    set -Eeuo pipefail
+    umask 0022
 
-# Persist this script so tests and postCreateCommand hooks can re-invoke it.
-# The devcontainer CLI removes /tmp/dev-container-features/ after installation,
-# so we copy to a stable path before that cleanup occurs.
-# Guard: skip copy when already running from the persisted path (idempotent re-run).
-PERSIST_DIR="/usr/local/share/devcontainer-features/claude-code"
-mkdir -p "${PERSIST_DIR}"
-SCRIPT_REAL=$(readlink -f "$0" 2>/dev/null || echo "$0")
-PERSIST_REAL=$(readlink -f "${PERSIST_DIR}/install.sh" 2>/dev/null || echo "${PERSIST_DIR}/install.sh")
-if [[ "${SCRIPT_REAL}" != "${PERSIST_REAL}" ]]; then
-    cp "$0" "${PERSIST_DIR}/install.sh"
-    chmod +x "${PERSIST_DIR}/install.sh"
-    log_debug "Install script persisted to ${PERSIST_DIR}/install.sh"
-else
-    log_debug "Already running from ${PERSIST_DIR}/install.sh — skipping self-copy."
+    FEATURE_LOG_PREFIX="[claude-code feature]"
+
+    # Debug mode
+    if [[ "${DEBUG:-false}" == "true" ]]; then
+        unset ANTHROPIC_API_KEY CLAUDE_API_KEY 2>/dev/null || true
+        set -x
+    fi
+
+    # Traps
+    trap 'echo "${FEATURE_LOG_PREFIX} ERROR: Failed at line ${LINENO}. Exit code: $?" >&2' ERR
+    trap cleanup EXIT INT TERM
+
+    TEMP_DIR=""
+
+    # --- Parse Options ---
+    VERSION="${VERSION:-latest}"
+    NODE_VERSION="${NODEVERSION:-lts}"
+    INSTALL_PATH="${INSTALLPATH:-/usr/local}"
+    ENABLE_MCP_SERVERS="${ENABLEMCPSERVERS:-false}"
+    MOUNT_HOST_CONFIG="${MOUNTHOSTCONFIG:-false}"
+    SHELL_COMPLETIONS="${SHELLCOMPLETIONS:-true}"
+
+    # Normalize boolean options to lowercase (bash 4.0+)
+    ENABLE_MCP_SERVERS="${ENABLE_MCP_SERVERS,,}"
+    MOUNT_HOST_CONFIG="${MOUNT_HOST_CONFIG,,}"
+    SHELL_COMPLETIONS="${SHELL_COMPLETIONS,,}"
+
+    validate_version "${VERSION}"
+    validate_install_path "${INSTALL_PATH}"
+    validate_node_version "${NODE_VERSION}"
+
+    log_info "Starting installation..."
+    log_info "  Claude Code version: ${VERSION}"
+    log_info "  Node.js version: ${NODE_VERSION}"
+    log_info "  Install path: ${INSTALL_PATH}"
+    log_info "  MCP servers: ${ENABLE_MCP_SERVERS}"
+    log_info "  Mount host config: ${MOUNT_HOST_CONFIG}"
+    log_info "  Shell completions: ${SHELL_COMPLETIONS}"
+
+    REMOTE_USER=$(detect_remote_user)
+    REMOTE_USER_HOME=$(detect_user_home "${REMOTE_USER}")
+    if [[ -z "${REMOTE_USER_HOME}" ]]; then
+        log_warn "Could not detect home directory for user '${REMOTE_USER}'. Defaulting to /root."
+        REMOTE_USER_HOME="/root"
+    fi
+    log_info "  Remote user: ${REMOTE_USER} (home: ${REMOTE_USER_HOME})"
+
+    OS_FAMILY=$(detect_os)
+    ARCH=$(detect_arch)
+    log_info "  Detected OS family: ${OS_FAMILY}"
+    log_info "  Detected architecture: ${ARCH}"
+
+    ensure_base_dependencies
+
+    NODE_MIN_VERSION=18
+
+    ensure_node
+
+    configure_custom_path
+    install_claude_code
+
+    setup_completions
+    setup_mcp_servers
+    setup_mount_docs
+    cleanup_caches
+
+    # Persist this script and completions so tests and postCreateCommand hooks
+    # can re-invoke it. The devcontainer CLI removes /tmp/dev-container-features/
+    # after installation, so we copy to a stable path before that cleanup occurs.
+    # Guard: skip copy when already running from the persisted path (idempotent re-run).
+    PERSIST_DIR="/usr/local/share/devcontainer-features/claude-code"
+    mkdir -p "${PERSIST_DIR}"
+    SCRIPT_REAL=$(readlink -f "$0" 2>/dev/null || echo "$0")
+    PERSIST_REAL=$(readlink -f "${PERSIST_DIR}/install.sh" 2>/dev/null || echo "${PERSIST_DIR}/install.sh")
+    if [[ "${SCRIPT_REAL}" != "${PERSIST_REAL}" ]]; then
+        cp "$0" "${PERSIST_DIR}/install.sh"
+        chmod +x "${PERSIST_DIR}/install.sh"
+        # Also persist the completions directory (needed by setup_completions on re-run).
+        local script_dir
+        script_dir="$(cd "$(dirname "$0")" && pwd)"
+        if [[ -d "${script_dir}/completions" ]]; then
+            cp -r "${script_dir}/completions" "${PERSIST_DIR}/completions"
+        fi
+        log_debug "Install script persisted to ${PERSIST_DIR}/install.sh"
+    else
+        log_debug "Already running from ${PERSIST_DIR}/install.sh — skipping self-copy."
+    fi
+
+    log_info "Claude Code DevContainer Feature installation complete."
+    log_info "  Claude Code: $(claude --version 2>/dev/null || echo 'unknown')"
+    log_info "  Node.js: $(node --version 2>/dev/null || echo 'unknown')"
+    log_info "  OS: ${OS_FAMILY} (${ARCH})"
+    log_info "  User: ${REMOTE_USER}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi
-
-log_info "Claude Code DevContainer Feature installation complete."
-log_info "  Claude Code: $(claude --version 2>/dev/null || echo 'unknown')"
-log_info "  Node.js: $(node --version 2>/dev/null || echo 'unknown')"
-log_info "  OS: ${OS_FAMILY} (${ARCH})"
-log_info "  User: ${REMOTE_USER}"
