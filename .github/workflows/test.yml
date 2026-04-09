@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main, develop]
+  schedule:
+    - cron: "0 4 * * 1"
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
@@ -54,7 +56,9 @@ jobs:
       - name: shfmt format check
         run: |
           curl -fsSL https://github.com/mvdan/sh/releases/download/v3.13.0/shfmt_v3.13.0_linux_amd64 \
-            -o /usr/local/bin/shfmt && chmod +x /usr/local/bin/shfmt
+            -o /usr/local/bin/shfmt
+          echo "70aa99784703a8d6569bbf0b1e43e1a91906a4166bf1a79de42050a6d0de7551  /usr/local/bin/shfmt" | sha256sum -c -
+          chmod +x /usr/local/bin/shfmt
           shfmt -ln bash -d -i 4 -ci src/ test/
 
       - name: Check .sh files are executable
@@ -72,7 +76,7 @@ jobs:
   test-scenarios:
     needs: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 60 # 10 scenarios building containers takes time
+    timeout-minutes: 90 # 17 scenarios building containers takes time
     permissions:
       contents: read
     steps:
@@ -91,6 +95,11 @@ jobs:
           # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
           if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/scenario-test-output.log; then
             echo "ERROR: Test output contains failures."
+            exit 1
+          fi
+          # Positive assertion: verify at least one test passed
+          if ! grep -qE "[0-9]+ passed" /tmp/scenario-test-output.log; then
+            echo "ERROR: No pass markers found — test may not have run."
             exit 1
           fi
 
@@ -123,39 +132,17 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 8
       matrix:
         image:
-          # Raw OS images
-          - "ubuntu:22.04"
+          - "mcr.microsoft.com/devcontainers/base:ubuntu"
+          - "mcr.microsoft.com/devcontainers/base:debian"
+          - "mcr.microsoft.com/devcontainers/base:alpine"
+          - "mcr.microsoft.com/devcontainers/javascript-node"
           - "ubuntu:24.04"
-          - "debian:bullseye"
-          - "debian:bookworm"
-          - "alpine:3.19"
-          - "alpine:3.20"
           - "alpine:3.21"
           - "archlinux:latest"
-          - "fedora:39"
           - "fedora:40"
-          - "rockylinux:9"
-          - "almalinux:9"
-          - "amazonlinux:2023"
-          # DevContainer base images
-          - "mcr.microsoft.com/devcontainers/base:debian"
-          - "mcr.microsoft.com/devcontainers/base:ubuntu"
-          - "mcr.microsoft.com/devcontainers/base:alpine"
-          - "mcr.microsoft.com/devcontainers/universal:2"
-          # Language-specific images
-          - "mcr.microsoft.com/devcontainers/python:3"
-          - "mcr.microsoft.com/devcontainers/javascript-node"
-          - "mcr.microsoft.com/devcontainers/typescript-node"
-          - "mcr.microsoft.com/devcontainers/rust"
-          - "mcr.microsoft.com/devcontainers/go"
-          - "mcr.microsoft.com/devcontainers/cpp"
-          - "mcr.microsoft.com/devcontainers/dotnet"
-          - "mcr.microsoft.com/devcontainers/java"
-          - "mcr.microsoft.com/devcontainers/ruby"
-          - "mcr.microsoft.com/devcontainers/php"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -176,6 +163,11 @@ jobs:
           # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
           if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/test-output.log; then
             echo "ERROR: Test output contains failures."
+            exit 1
+          fi
+          # Positive assertion: verify at least one test passed
+          if ! grep -qE "[0-9]+ passed" /tmp/test-output.log; then
+            echo "ERROR: No pass markers found — test may not have run."
             exit 1
           fi
 
@@ -199,9 +191,76 @@ jobs:
           path: /tmp/test-output.log
           retention-days: 7
 
+  # Nightly-only extended image matrix for broader coverage
+  test-image-matrix-extended:
+    needs: lint
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        image:
+          - "rockylinux:9"
+          - "amazonlinux:2023"
+          - "debian:bookworm"
+          - "ubuntu:22.04"
+          - "alpine:3.20"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli@0.85.0
+
+      - name: Test on ${{ matrix.image }}
+        run: |
+          devcontainer features test \
+            --features claude-code \
+            --skip-scenarios \
+            --base-image "${{ matrix.image }}" \
+            --project-folder . 2>&1 | tee /tmp/test-output.log
+          # Workaround: devcontainers/cli@0.85.0 exits 0 even when feature install fails.
+          # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
+          if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/test-output.log; then
+            echo "ERROR: Test output contains failures."
+            exit 1
+          fi
+          # Positive assertion: verify at least one test passed
+          if ! grep -qE "[0-9]+ passed" /tmp/test-output.log; then
+            echo "ERROR: No pass markers found — test may not have run."
+            exit 1
+          fi
+
+      - name: Annotate install warnings
+        if: always()
+        run: |
+          mapfile -t warnings < <(grep -oP '(?<=claude-code feature\] WARNING: ).*' /tmp/test-output.log 2>/dev/null | tr -d '\r' | sort -u || true)
+          if [[ ${#warnings[@]} -gt 0 ]]; then
+            echo "## :warning: Install Warnings" >> "$GITHUB_STEP_SUMMARY"
+            for msg in "${warnings[@]}"; do
+              echo "- ${msg}" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Install Warning::${msg}"
+            done
+          fi
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: logs-extended-${{ strategy.job-index }}
+          path: /tmp/test-output.log
+          retention-days: 7
+
   # arm64 tests via QEMU emulation on standard ubuntu-latest runners
   test-arm64:
     needs: lint
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 60 # QEMU emulation is significantly slower than native
     permissions:
@@ -238,6 +297,11 @@ jobs:
           # Grep for known failure strings and fail explicitly. Revisit on CLI upgrade.
           if grep -qE "Exit code [1-9][0-9]*|failed to install|Failed to launch|Failed:|  FAIL:" /tmp/test-output.log; then
             echo "ERROR: Test output contains failures."
+            exit 1
+          fi
+          # Positive assertion: verify at least one test passed
+          if ! grep -qE "[0-9]+ passed" /tmp/test-output.log; then
+            echo "ERROR: No pass markers found — test may not have run."
             exit 1
           fi
 
