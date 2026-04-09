@@ -1,6 +1,6 @@
 {
   "id": "claude-code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "name": "Claude Code",
   "description": "Install Claude Code CLI into any devcontainer. Supports Debian, Ubuntu, Alpine, Arch, Fedora, RHEL, Rocky, Alma, and Amazon Linux on amd64/arm64.",
   "keywords": [
