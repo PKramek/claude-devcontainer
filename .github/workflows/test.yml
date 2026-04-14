@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: logs-scenarios-${{ matrix.group.name }}
           path: /tmp/scenario-test-output.log
@@ -228,7 +228,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: logs-amd64-${{ strategy.job-index }}
           path: /tmp/test-output.log
@@ -294,7 +294,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: logs-extended-${{ strategy.job-index }}
           path: /tmp/test-output.log
@@ -361,7 +361,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: logs-arm64-${{ strategy.job-index }}
           path: /tmp/test-output.log
